@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bingwa — USSD Automation</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect width=%2224%22 height=%2224%22 rx=%225%22 fill=%22%231f8f43%22/%3E%3Ctext x=%2212%22 y=%2217%22 font-size=%2214%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22%3EB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0">
+<style>
+:root{--bg:#0f0f0f;--card:#1a1a1a;--card2:#222;--line:#2b2b2b;--tx:#ececec;--mut:#9b9b9b;--green:#1f8f43;--green2:#2bb35a;--red:#b71c1c;--blue:#7cb7ff;--yel:#f2c94c;--pink:#f28b82;--teal:#4ade80;--chip:#262626;--drawer:#141414}
+[data-theme=light]{--bg:#f4f5f7;--card:#fff;--card2:#f0f1f3;--line:#e2e4e8;--tx:#16181c;--mut:#666c75;--chip:#eceef1;--drawer:#fff;--blue:#1a6fd6}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--blue);text-decoration:none}
+.ms{font-family:'Material Symbols Outlined';font-weight:400;font-size:22px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';vertical-align:middle;user-select:none}
+.ms.s{font-size:18px}.ms.xs{font-size:15px}.ms.fill{font-variation-settings:'FILL' 1}
+#app{display:flex;min-height:100vh}
+#drawer{width:264px;background:var(--drawer);border-right:1px solid var(--line);position:fixed;top:0;bottom:0;left:0;z-index:40;overflow-y:auto;transform:translateX(-100%);transition:transform .22s}
+#drawer.open{transform:none}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:39;display:none}
+#scrim.show{display:block}
+.dr-head{padding:22px 16px 12px;background:var(--card2)}
+.dr-head b{display:block;font-size:16px;margin-top:8px}.dr-head small{color:var(--mut);font-size:11px}
+.dr-sec{padding:14px 14px 6px;font-weight:600;font-size:13px}
+.dr-item{display:flex;align-items:center;gap:14px;padding:12px 16px;cursor:pointer;font-size:13px;border-radius:0 24px 24px 0;margin-right:8px}
+.dr-item:hover{background:var(--card2)}.dr-item.act{background:rgba(43,179,90,.14);color:var(--green2)}
+.dr-sep{border-top:1px solid var(--line);margin:6px 0}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
+.top{position:sticky;top:0;z-index:20;background:var(--bg);width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid transparent}
+.top h1{font-size:16px;font-weight:500;flex:1}
+.top .acts{display:flex;gap:4px}
+.ib{background:none;border:0;cursor:pointer;width:38px;height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx)}
+.ib:hover{background:var(--card2)}.ib.box{border:1px solid var(--line)}
+.ib.sm{width:30px;height:30px}
+#page{width:100%;max-width:720px;padding:6px 12px 110px}
+@media(min-width:1100px){#drawer{transform:none}#main{margin-left:264px}#menuBtn{display:none}#scrim{display:none!important}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+.card.p{padding:14px}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);min-height:46px}
+.ch .lbl{font-size:11px;letter-spacing:.09em;color:var(--mut);text-transform:uppercase}
+.lbl{font-size:11px;letter-spacing:.09em;color:var(--mut);text-transform:uppercase}
+.row{display:flex;align-items:center;gap:10px}.wrap{flex-wrap:wrap}.sb{justify-content:space-between}.f1{flex:1;min-width:0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 12px}
+.big{font-size:20px;font-weight:500}.cap{font-size:10.5px;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;margin-top:6px}
+.num{font-size:15px;font-weight:600}.sub{color:var(--mut);font-size:12px}.tiny{font-size:11px;color:var(--mut)}
+.c-green{color:var(--teal)}.c-yel{color:var(--yel)}.c-red{color:var(--pink)}.c-blue{color:var(--blue)}
+.btn{border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--card2);border:1px solid var(--line)}
+.btn.g{background:var(--green);border-color:var(--green);color:#fff}.btn.r{background:var(--red);border-color:var(--red);color:#fff}
+.btn.o{background:transparent;border:1px solid var(--line);color:var(--blue)}
+.btn.blk{width:100%}.btn.sm{padding:7px 12px;font-size:12.5px}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.big{padding:14px;font-size:14px}
+.fab{position:fixed;right:18px;bottom:22px;z-index:25;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+@media(min-width:1100px){.fab{right:calc((100vw - 264px - 720px)/2 + 18px)}}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:6px 0 12px;scrollbar-width:none}
+.chip{white-space:nowrap;border-radius:18px;padding:7px 13px;background:var(--chip);border:1px solid var(--line);cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:4px}
+.chip.on{background:rgba(43,179,90,.16);border-color:#2e6b40;color:#c9f2d5}
+[data-theme=light] .chip.on{color:#0f5d2a}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:16px;padding:4px 10px;font-size:11.5px;background:var(--chip);border:1px solid var(--line)}
+.pill.g{background:rgba(43,179,90,.14);border-color:#2e6b40}.pill.r{background:rgba(183,28,28,.18);border-color:#6b2e2e}
+.tag{font-size:10.5px;padding:3px 8px;border-radius:10px;background:var(--chip);border:1px solid var(--line);white-space:nowrap}
+.inp{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px;outline:none}
+.inp:focus{border-color:var(--green2)}
+textarea.inp{min-height:90px;resize:vertical}
+.fld{position:relative;margin-bottom:12px}.fld>label{display:block;font-size:11px;color:var(--mut);margin:0 0 5px 2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:0 12px;margin:6px 0 10px}
+.search input{flex:1;background:none;border:0;outline:none;padding:12px 0}
+.li{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.av{width:38px;height:38px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px;margin-top:12px}
+.kv .k{display:flex;gap:8px}.kv .k .ms{color:var(--blue);font-size:18px}
+.kv .k small{display:block;font-size:11px;color:var(--mut)}
+.set{display:flex;align-items:center;gap:16px;padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.set:hover{background:var(--card2)}.set .ms{color:var(--blue)}.set .t{flex:1}.set .t small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.sw{position:relative;width:40px;height:22px;flex-shrink:0}.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:#3a3a3a;border-radius:22px;cursor:pointer;transition:.2s}
+.sw span:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#bbb;border-radius:50%;transition:.2s}
+.sw input:checked+span{background:var(--green)}.sw input:checked+span:before{transform:translateX(18px);background:#fff}
+.seg{display:flex;border:1px solid var(--line);border-radius:24px;overflow:hidden}
+.seg button{flex:1;background:none;border:0;padding:10px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}.seg button.on{background:rgba(43,179,90,.16);color:var(--teal)}
+.empty{text-align:center;padding:40px 16px;color:var(--mut)}.empty .ms{font-size:56px;color:#777}
+.empty b{display:block;color:var(--tx);margin:12px 0 10px;font-weight:500}
+.menu{position:fixed;z-index:60;background:var(--card2);border:1px solid var(--line);border-radius:10px;min-width:190px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:4px 0}
+.menu div{padding:10px 14px;cursor:pointer;display:flex;gap:10px;align-items:center;font-size:13px}
+.menu div:hover{background:var(--line)}.menu div.danger{color:var(--pink)}
+#modalWrap{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:70;display:none;align-items:center;justify-content:center;padding:14px}
+#modalWrap.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:14px;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column}
+.modal h3{font-size:16px;font-weight:600;padding:16px 16px 6px}
+.modal .mb{padding:10px 16px;overflow-y:auto}
+.modal .mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+#toast div{background:#2d2d2d;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.4);max-width:90vw}
+.pre{white-space:pre-wrap;font-size:12px;color:var(--mut);margin-top:6px;max-height:110px;overflow:hidden}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.steps li{list-style:none;display:flex;gap:10px;margin:10px 0}.steps li i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.bar{height:8px;background:var(--card2);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--green2)}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}table.t td,table.t th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}table.t th{color:var(--mut);font-weight:500}
+.status{font-size:11px;padding:3px 8px;border-radius:10px}
+.st-completed{background:rgba(74,222,128,.14);color:var(--teal)}.st-pending{background:rgba(242,201,76,.14);color:var(--yel)}.st-failed{background:rgba(242,139,130,.14);color:var(--pink)}.st-scheduled{background:rgba(124,183,255,.14);color:var(--blue)}.st-running{background:rgba(242,201,76,.14);color:var(--yel)}
+.spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.mt{margin-top:10px}.mb8{margin-bottom:8px}.gap6{gap:6px}
+.sel{appearance:none;background:var(--card2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="scrim"></div>
+  <nav id="drawer"></nav>
+  <div id="main">
+    <header class="top"><button class="ib" id="menuBtn" data-act="drawer"><span class="ms">menu</span></button><h1 id="title">Bingwa</h1><div class="acts" id="topActs"></div></header>
+    <main id="page"></main>
+  </div>
+</div>
+<div id="modalWrap"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+<input type="file" id="filePick" class="hidden">
+<script>/* qrcode-generator 1.4.4 (MIT, Kazuhiko Arase) */
+/**
+ * Minified by jsDelivr using Terser v5.37.0.
+ * Original file: /npm/qrcode-generator@1.4.4/qrcode.js
+ *
+ * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
+ */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,(function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1}))},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}((function(){return qrcode}));
+//# sourceMappingURL=/sm/26b4b0d0b1e283d6b3ec9857ac597d7a60c76ac17be1ef4c965f03086de426bb.map
+</script>
+<script>
+'use strict';
+const KEY='bingwa_state_v1', DAY=864e5, VERSION='1.0.0';
+const now=()=>Date.now();
+const uid=()=>Math.random().toString(36).slice(2,10);
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const kes=n=>'KES '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:Number(n)%1?2:0,maximumFractionDigits:2});
+const kes2=n=>'KES '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const initials=n=>{const p=String(n||'?').trim().split(/\s+/);return ((p[0]||'?')[0]+((p[1]||'')[0]||'')).toUpperCase()};
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(ts){const d=new Date(ts);let hr=d.getHours(),ap=hr>=12?'PM':'AM';hr=hr%12||12;return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} • ${hr}:${String(d.getMinutes()).padStart(2,'0')} ${ap}`}
+function fmtIso(ts){const d=new Date(ts),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.000`}
+function rel(ts){const s=(now()-ts)/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';const d=Math.floor(s/86400);if(d<7)return d+(d==1?' day ago':' days ago');const t=new Date(ts);return `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear()}`}
+function normPhone(p){p=String(p||'').replace(/[^\d+]/g,'');if(p.startsWith('+254'))p='0'+p.slice(4);else if(/^254\d{9}$/.test(p))p='0'+p.slice(3);else if(/^[71]\d{8}$/.test(p))p='0'+p;return p}
+function startOfDay(t=now()){const d=new Date(t);d.setHours(0,0,0,0);return +d}
+
+/* ---------------- seed data ---------------- */
+function seed(){
+  const AR=(on,text)=>({on,text});
+  return {
+    v:2,automation:true,
+    balances:{airtime:0,tokens:0,commission:0},
+    plans:[],clients:[],contacts:[],mpesa:[],ussdHistory:[],
+    transactions:[],schedules:[],outbox:[],templates:[],relayLog:[],bulkHistory:[],
+    unverified:[],
+    fallbacks:{active:true,maps:[]},
+    autoReply:{systemNumber:'',sim:'',timeout:15,senderId:'',messages:{
+      completed:AR(false,'{TransactionId} Confirmed. {PackageName} activated successfully. Text OFFERS to {SystemNumber} for more deals.'),
+      failed:AR(false,'{TransactionId} Confirmed. Issue processing {PackageName}. We are retrying automatically. Thank you for your patience.'),
+      disabled:AR(false,'{TransactionId} Confirmed. {PackageName} is temporarily unavailable. Your request will process once service resumes.'),
+      restricted:AR(false,'{TransactionId} Confirmed. Request declined for this number. Please use an authorized line or contact support.'),
+      unavailable:AR(false,'{TransactionId} Confirmed. amount sent does not match any Offers. Text OFFERS to {SystemNumber} for available deals.'),
+      already:AR(false,'{TransactionId} Confirmed. {Customer} has already been recommended {PackageName} today. We have sent an alternative offer.'),
+      offers:AR(false,'Bingwa OFFERS:\n{OffersList}\nPay via {Payment}.')}},
+    profile:{name:'',org:'',phone:'',email:'',payMode:'Till',pay:{Paybill:'',Till:'','M-Pesa number':''},paybillAcc:'',
+      security:{enabled:false,pin:'',protect:{automation:false,plans:false,backup:false,balances:false}}},
+    store:{pat:'',connected:false,lastSync:0},
+    portal:{paired:false,deviceName:'Android phone',pairedAt:0},
+    relay:{enabled:false,target:'',channel:'SMS',onlyVerified:true},
+    smsApi:{token:''},
+    settings:{appMode:'Standalone',theme:'dark',weekStart:'Sunday',homeRange:'Daily',language:'English',verifiedSenders:['MPESA'],
+      missedScan:true,autoDelete:'Disabled',autoDeleteLast:0,metrics:{newDays:1,riskDays:2,churnDays:4,dormantDays:30,highSpend:1000},
+      sigNumber:'',contactSync:true,screen:'Off',notifSim:'SIM 1',
+      ussd:{defaultSim:'SIM 1',timeout:30,delay:3,successRate:80,sims:{'SIM 1':'','SIM 2':''}}},
+    ui:{hide:{bal:false,ov:false,rec:false}}
+  };
+}
+let S;
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}if(!S||S.v!==2){S=seed();save()}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){console.warn(e)}}
+
+/* ---------------- UI helpers ---------------- */
+function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2800)}
+let modalBtns=[];
+function modal(title,body,buttons=[{label:'Close'}],opts={}){
+  modalBtns=buttons;
+  $('#modal').style.maxWidth=opts.wide?'640px':'';
+  $('#modal').innerHTML=`<h3>${title}</h3><div class="mb">${body}</div>${buttons.length?`<div class="mf">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-mbtn="${i}">${b.label}</button>`).join('')}</div>`:''}`;
+  $('#modalWrap').classList.add('show');
+  const f=$('#modal input:not([type=checkbox]),#modal textarea');if(f&&!opts.nofocus)setTimeout(()=>f.focus(),30);
+  return $('#modal');
+}
+function closeModal(){$('#modalWrap').classList.remove('show');$('#modal').innerHTML='';}
+function vals(root=$('#modal')){const o={};$$('[name]',root).forEach(e=>{o[e.name]=e.type==='checkbox'?e.checked:e.value});return o}
+function confirmBox(msg,fn,label='Confirm',cls='r'){modal('Please confirm',`<p>${msg}</p>`,[{label:'Cancel'},{label,cls,onClick:()=>{fn()}}])}
+function popMenu(anchor,items){
+  closeMenu();const m=document.createElement('div');m.className='menu';m.id='popmenu';
+  m.innerHTML=items.map((it,i)=>`<div data-mi="${i}" class="${it.danger?'danger':''}"><span class="ms s">${it.icon||'chevron_right'}</span>${it.label}</div>`).join('');
+  document.body.appendChild(m);const r=anchor.getBoundingClientRect();
+  let top=r.bottom+4,left=Math.min(r.right-190,innerWidth-200);if(top+m.offsetHeight>innerHeight)top=r.top-m.offsetHeight-4;
+  m.style.top=Math.max(8,top)+'px';m.style.left=Math.max(8,left)+'px';
+  m.onclick=e=>{const d=e.target.closest('[data-mi]');if(d){closeMenu();items[+d.dataset.mi].fn()}};
+}
+function closeMenu(){const m=$('#popmenu');if(m)m.remove()}
+function sw(name,checked,attrs=''){return `<label class="sw"><input type="checkbox" ${name?`name="${name}"`:''} ${checked?'checked':''} ${attrs}><span></span></label>`}
+function opt(list,cur){return list.map(x=>{const [v,l]=Array.isArray(x)?x:[x,x];return `<option value="${h(v)}" ${String(v)===String(cur)?'selected':''}>${h(l)}</option>`}).join('')}
+function fld(label,inner){return `<div class="fld"><label>${label}</label>${inner}</div>`}
+function inp(name,val='',ph='',type='text',extra=''){return `<input class="inp" type="${type}" name="${name}" value="${h(val)}" placeholder="${h(ph)}" ${extra}>`}
+function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied to clipboard')).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();toast('Copied to clipboard')})}
+function download(name,text,type='application/json'){const b=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+function pickFile(accept,cb){const f=$('#filePick');f.accept=accept;f.value='';f.onchange=()=>{const file=f.files[0];if(!file)return;const r=new FileReader();r.onload=()=>cb(r.result,file);r.readAsText(file)};f.click()}
+function csv(rows){return rows.map(r=>r.map(c=>{c=String(c??'');return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(',')).join('\n')}
+function parseCsv(t){return t.split(/\r?\n/).filter(Boolean).map(l=>{const out=[];let cur='',q=false;for(let i=0;i<l.length;i++){const c=l[i];if(q){if(c=='"'&&l[i+1]=='"'){cur+='"';i++}else if(c=='"')q=false;else cur+=c}else if(c=='"')q=true;else if(c==','){out.push(cur);cur=''}else cur+=c}out.push(cur);return out})}
+
+/* security gate */
+function guard(action,fn){const sec=S.profile.security;if(!sec.enabled||!sec.protect[action]||!sec.pin)return fn();
+  modal('Verify it\'s you',fld('Enter your security PIN',inp('pin','','••••','password','inputmode="numeric"')),[{label:'Cancel'},{label:'Verify',cls:'g',onClick:m=>{if(vals(m).pin===sec.pin){closeModal();fn();return false}toast('Incorrect PIN');return false}}])}
+
+/* ---------------- domain logic ---------------- */
+const planById=id=>S.plans.find(p=>p.id===id);
+const planLabel=p=>p?`${p.name} @ KES ${p.price}`:'(deleted plan)';
+function clientByNumber(n){n=normPhone(n);return S.clients.find(c=>normPhone(c.number)===n)}
+function clientState(c){const m=S.settings.metrics,d=(now()-c.lastActive)/DAY;
+  const tags=[];if(c.blacklisted)tags.push('Blacklisted');
+  if(d>=m.churnDays)tags.push(`Churned ${m.churnDays}d+`);else if(d>=m.riskDays)tags.push(`At risk ${m.riskDays}d`);
+  if(c.spent>=m.highSpend)tags.push('High');return {d,tags,
+    active:d<m.riskDays&&!c.blacklisted,dormant:d>=m.dormantDays,churned:d>=m.churnDays,risk:d>=m.riskDays&&d<m.churnDays,
+    isNew:now()-c.firstSeen<m.newDays*DAY,returning:c.lastActive>=startOfDay()&&c.firstSeen<startOfDay()&&c.purchases>1}}
+function upsertClient(phone,name,amount){
+  let c=clientByNumber(phone);
+  if(!c){c={id:uid(),name:name||phone,number:normPhone(phone),network:/^0(7|1)/.test(normPhone(phone))?'Safaricom':'-',spent:0,points:0,lastActive:now(),firstSeen:now(),purchases:0,blacklisted:false};S.clients.unshift(c)}
+  if(amount){c.spent+=Number(amount)}c.lastActive=now();if(name&&(c.name===c.number))c.name=name;
+  if(S.settings.contactSync&&!S.contacts.some(x=>normPhone(x.number)===normPhone(c.number)))S.contacts.push({id:uid(),name:c.name,number:c.number,email:'',source:'local',synced:true});
+  return c}
+function fillTpl(t,ctx){const pay=S.profile.payMode+' '+(S.profile.pay[S.profile.payMode]||'');
+  const offers=S.plans.filter(p=>p.enabled).map(p=>`${p.name} - KES ${p.price}`).join('\n');
+  return String(t).replace(/\{(\w+)\}/g,(m,k)=>({TransactionId:ctx.code||'',PackageName:ctx.plan||'',SystemNumber:S.autoReply.systemNumber||'your system number',Amount:ctx.amount??'',Customer:ctx.phone||'',Payment:pay,Till:pay,OffersList:offers,Business:S.profile.name}[k]??m))}
+function sendSms(to,body,channel,meta={}){
+  const ch=channel||(S.autoReply.senderId?'SMSHub:'+S.autoReply.senderId:(S.autoReply.sim||S.settings.notifSim));
+  const o={id:uid(),to,body,ts:now(),status:'queued',channel:ch,...meta};S.outbox.unshift(o);if(S.outbox.length>500)S.outbox.length=500;
+  setTimeout(()=>{o.status=Math.random()<.97?'sent':'failed';save();softRender()},400+Math.random()*900);return o}
+function autoReply(kind,tx){const m=S.autoReply.messages[kind];if(!m||!m.on)return;sendSms(tx.phone,fillTpl(m.text,tx),null,{kind})}
+function notify(event,tx){S.templates.filter(t=>t.on&&t.trigger===event).forEach(t=>{const to=t.to||normPhone(S.profile.phone);if(to)sendSms(to,fillTpl(t.body,tx||{}),t.sim,{kind:'notification'})})}
+
+function parseMpesa(body){
+  const code=(String(body).match(/^\s*([A-Z0-9]{8,12})\s+Confirmed/i)||[])[1];
+  const rec=String(body).match(/received\s+Ksh\s?([\d,]+(?:\.\d+)?)\s+from\s+(.+?)\s+((?:\+?254|0)?[0-9][0-9 *]{5,13})\s+on\s/i);
+  if(!code||!rec)return null;
+  return {code:code.toUpperCase(),amount:parseFloat(rec[1].replace(/,/g,'')),name:rec[2].trim().replace(/\.$/,''),phone:normPhone(rec[3])}}
+function isVerified(sender){return S.settings.verifiedSenders.some(v=>v.toLowerCase()===String(sender).toLowerCase())}
+
+function receiveSms(sender,body){
+  const msg={id:uid(),sender,body,ts:now()};
+  if(isVerified(sender)){S.mpesa.unshift(msg);if(S.relay.enabled&&S.relay.target){sendSms(S.relay.target,`[Relay ${sender}] ${body}`,'Relay',{kind:'relay'});S.relayLog.unshift({id:uid(),ts:now(),from:sender,to:S.relay.target,body})}
+    const p=parseMpesa(body);if(p){processPayment(p)}else toast('M-PESA message saved (not a payment)')}
+  else{const p=parseMpesa(body);if(p){S.unverified.unshift({...msg,reason:'Sender not in Verified Senders'});toast('Payment from unverified sender held for review')}
+    else if(/^\s*offers\s*$/i.test(body)){const m=S.autoReply.messages.offers;sendSms(sender,fillTpl(m.text,{phone:sender}),null,{kind:'offers'});toast('OFFERS reply sent to '+sender)}
+    else toast('SMS from '+sender+' ignored')}
+  save();softRender()}
+
+function processPayment(p,{force}={}){
+  if(!force&&S.transactions.some(t=>t.code===p.code)){toast('Duplicate transaction '+p.code+' ignored');return}
+  const tx={id:uid(),code:p.code,phone:p.phone,name:p.name,amount:p.amount,ts:now(),status:'pending',plan:'',planId:'',notes:[],attempts:0};
+  S.transactions.unshift(tx);upsertClient(p.phone,p.name,p.amount);
+  if(!S.automation){tx.notes.push('Automation stopped — queued until automation starts');save();toast(`${p.code}: queued (automation stopped)`);return tx}
+  runTx(tx);return tx}
+
+let running=0;
+async function runTx(tx){
+  const c=clientByNumber(tx.phone);
+  const fail=(reason,kind)=>{tx.status='failed';tx.reason=reason;tx.notes.push(reason);if(kind)autoReply(kind,tx);notify('failed',tx);save();softRender();toast(`${tx.code}: ${reason}`)};
+  if(c&&c.blacklisted)return fail('Restricted number','restricted');
+  const plan=S.plans.find(p=>Number(p.price)===Number(tx.amount)&&p.enabled)||S.plans.find(p=>Number(p.price)===Number(tx.amount));
+  if(!plan)return fail('Amount does not match any offer','unavailable');
+  tx.plan=plan.name;tx.planId=plan.id;
+  if(!plan.enabled){tx.status='pending';tx.notes.push('Plan disabled — waiting for service to resume');autoReply('disabled',tx);save();softRender();return}
+  tx.status='running';save();softRender();running++;
+  try{await executeWithRetry(tx,plan,false)}finally{running--}
+}
+async function executeWithRetry(tx,plan,isFallback){
+  const max=plan.retryOn?Math.max(1,plan.retry):1;let r;
+  for(let i=0;i<max;i++){tx.attempts++;r=await dialUssd(plan,tx.phone,plan.type,'auto');
+    if(r.kind==='success'||r.kind==='already')break;
+    if(r.kind==='insufficient')break;
+    tx.notes.push(`Attempt ${i+1}/${max}: ${r.kind}`);await sleep(Math.min(1500,S.settings.ussd.delay*200))}
+  if(r.kind==='success'){
+    tx.status='completed';S.balances.airtime=+(S.balances.airtime-plan.saf).toFixed(2);S.balances.tokens=Math.max(0,S.balances.tokens-1);
+    S.balances.commission=+(S.balances.commission+Math.max(0,plan.price-plan.saf)).toFixed(2);
+    const c=clientByNumber(tx.phone);if(c){c.purchases++;if(plan.points)c.points+=Number(plan.pointsEarn||0)}
+    tx.reason='';if(isFallback)tx.notes.push('Fallback completed');autoReply('completed',tx);notify('completed',tx);if(S.balances.airtime<500)notify('low_balance',tx);
+    save();softRender();toast(`${tx.code}: ${tx.plan} sent to ${tx.phone}`);return}
+  const trig=r.kind==='already'?'already':'failed';
+  if(!isFallback&&S.fallbacks.active){const map=S.fallbacks.maps.find(m=>m.from===plan.id&&m.trigger===trig);const fb=map&&planById(map.to);
+    if(fb&&fb.enabled){tx.notes.push(`Fallback from ${plan.name} → ${fb.name}`);if(trig==='already')autoReply('already',tx);tx.plan=fb.name+' (FB)';tx.planId=fb.id;save();softRender();return executeWithRetry(tx,fb,true)}}
+  tx.status='failed';tx.reason=r.kind==='already'?'Already recommended':r.kind==='insufficient'?'Insufficient airtime':'Purchase failed after '+max+' attempt(s)';
+  tx.notes.push(tx.reason);autoReply('failed',tx);notify('failed',tx);save();softRender();toast(`${tx.code}: ${tx.reason}`)}
+
+async function dialUssd(plan,phone,mode,source='console',sim){
+  const t0=now();const code=plan.ussd.replace(/pn/g,normPhone(phone));
+  await sleep(500+Math.random()*900);
+  let kind,response;const sr=Number(S.settings.ussd.successRate),x=Math.random()*100;
+  if(S.balances.airtime<plan.saf){kind='insufficient';response='Invalid choice. Try again.\nYou have insufficient airtime. Please choose another payment option.\n0:BACK\nCancel\nSend'}
+  else if(x<sr){kind='success';response=`Request successful. You have recommended ${plan.name} to ${normPhone(phone)}. They will receive an SMS to confirm.`}
+  else if(x<sr+(100-sr)*.45){kind='already';response=`Dear customer, ${normPhone(phone)} has already been recommended this offer. Please try another offer.`}
+  else if(x<sr+(100-sr)*.8){kind='failed';response='Invalid choice. Try again.\n0:BACK'}
+  else{kind='timeout';response='Connection problem or invalid MMI code.'}
+  if(mode==='Advanced'){const parts=code.replace(/^\*|#$/g,'').split('*');response=parts.slice(1).map((p,i)=>`--- Screen ${i+1} (input: ${p}) ---`).join('\n')+'\n'+response}
+  S.ussdHistory.unshift({id:uid(),plan:plan.name,price:plan.price,to:normPhone(phone),mode:mode||plan.type,ussd:plan.ussd,code,response,duration:+((now()-t0)/1000+Math.random()*4).toFixed(1),ts:now(),ok:kind==='success',kind,source,sim:sim||plan.execSim});
+  if(S.ussdHistory.length>300)S.ussdHistory.length=300;save();return {kind,response}}
+
+function startAutomation(on){S.automation=on;save();
+  if(on){const q=S.transactions.filter(t=>t.status==='pending');q.forEach(t=>runTx(t));toast(q.length?`Automation started — processing ${q.length} queued`:'Automation started')}else toast('Automation stopped');render()}
+
+function rangeStart(){const r=S.settings.homeRange,d=new Date();if(r==='Daily')return startOfDay();if(r==='Weekly'){const ws=S.settings.weekStart==='Monday'?1:0;const diff=(d.getDay()-ws+7)%7;return startOfDay()-diff*DAY}if(r==='Monthly')return +new Date(d.getFullYear(),d.getMonth(),1);return 0}
+
+/* scheduler tick */
+function tick(){let changed=false;const t=now();
+  S.schedules.filter(s=>s.status==='scheduled'&&s.at<=t).forEach(s=>{const p=planById(s.planId);if(!p){s.status='failed';changed=true;return}
+    s.status='running';changed=true;dialUssd(p,s.phone,p.type,'scheduler',s.sim).then(r=>{s.lastResult=r.kind;s.runs=(s.runs||0)+1;
+      if(r.kind==='success'){S.balances.airtime=+(S.balances.airtime-p.saf).toFixed(2)}
+      if(s.repeat==='daily'){s.at+=DAY;s.status='scheduled'}else if(s.repeat==='weekly'){s.at+=7*DAY;s.status='scheduled'}else s.status=r.kind==='success'?'completed':'failed';
+      save();softRender();toast(`Scheduled ${p.name} → ${s.phone}: ${r.kind}`)})});
+  if(changed){save();softRender()}}
+function autoDelete(){const v=S.settings.autoDelete;if(v==='Disabled')return;const days=parseInt(v);const cut=now()-days*DAY;const n=S.transactions.length;S.transactions=S.transactions.filter(t=>t.ts>=cut);S.settings.autoDeleteLast=now();if(n!==S.transactions.length)save()}
+</script>
+<script>
+'use strict';
+const NAV=[['home','Home','home'],['store','Online Store','cloud'],['plans','Data Plans Manager','data_saver_on'],['scheduler','USSD Scheduler','schedule_send'],['clients','Client Management','groups'],['contacts','Contacts','contact_page'],['console','USSD Console','terminal'],['relay','SMS Relay','sms'],['bulk','Bulk SMS','chat'],['mpesa','M-PESA Messages','inbox'],['unverified','Unverified Transactions','folder_off'],['portal','Portal','language'],['notifications','Notifications','chat_bubble'],['autoreply','Auto Reply','quickreply'],['fallback','Fallback Plans','alt_route']];
+const NAV2=[['profile','Profile','person'],['settings','App Settings','settings'],['updates','Updates','system_update']];
+const R={},A={},I={};
+const go=r=>{location.hash='#/'+r};
+const cur=()=>(location.hash.replace(/^#\/?/,'')||'home');
+function drawer(){const c=cur();const it=([r,l,i])=>`<div class="dr-item ${c===r?'act':''}" data-act="go" data-r="${r}"><span class="ms s">${i}</span>${l}</div>`;
+  $('#drawer').innerHTML=`<div class="dr-head"><span class="ms">auto_awesome</span><b>Bingwa</b><small>USSD Automation</small></div><div class="dr-sec">Modules</div>${NAV.map(it).join('')}<div class="dr-sep"></div><div class="dr-sec">Account &amp; Help</div>${NAV2.map(it).join('')}<div style="height:20px"></div>`}
+function render(){const c=cur(),p=R[c]||R.home;document.documentElement.dataset.theme=S.settings.theme==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):S.settings.theme;
+  $('#title').textContent=typeof p.title==='function'?p.title():p.title;$('#topActs').innerHTML=p.acts?p.acts():'';
+  $('#menuBtn').innerHTML=`<span class="ms">${p.back?'arrow_back':'menu'}</span>`;$('#menuBtn').dataset.act=p.back?'back':'drawer';
+  $('#page').innerHTML=p.render();drawer();p.after&&p.after()}
+function softRender(){if($('#modalWrap').classList.contains('show'))return;const a=document.activeElement;if(a&&$('#page').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){const p=R[cur()];if(p&&p.list&&$('#list'))$('#list').innerHTML=p.list();return}
+  const y=scrollY;render();scrollTo(0,y)}
+function toggleDrawer(f){const o=f??!$('#drawer').classList.contains('open');$('#drawer').classList.toggle('open',o);$('#scrim').classList.toggle('show',o)}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#popmenu'))closeMenu();
+  const mb=e.target.closest('[data-mbtn]');if(mb){const b=modalBtns[+mb.dataset.mbtn];const r=b.onClick?b.onClick($('#modal')):undefined;if(r!==false)closeModal();return}
+  if(e.target.id==='modalWrap'){closeModal();return}
+  if(e.target.id==='scrim'){toggleDrawer(false);return}
+  const el=e.target.closest('[data-act]');if(!el)return;const fn=A[el.dataset.act];if(fn){e.preventDefault();fn(el.dataset,el,e)}});
+document.addEventListener('input',e=>{const el=e.target.closest('[data-in]');if(el&&I[el.dataset.in])I[el.dataset.in](el.value,el)});
+document.addEventListener('change',e=>{const el=e.target.closest('[data-ch]');if(el&&A[el.dataset.ch])A[el.dataset.ch](el.dataset,el,e)});
+A.drawer=()=>toggleDrawer();A.go=d=>{toggleDrawer(false);go(d.r)};A.back=()=>history.length>1?history.back():go('home');
+A.hide=d=>{const f=()=>{S.ui.hide[d.k]=!S.ui.hide[d.k];save();render()};S.ui.hide[d.k]?guard('balances',f):f()};
+I.q=(v,el)=>{S.ui.q=S.ui.q||{};S.ui.q[el.dataset.k]=v;const p=R[cur()];if(p.list)$('#list').innerHTML=p.list()};
+A.chip=d=>{S.ui[d.k]=d.v;S.ui.limit=50;save();render()};
+const q=k=>((S.ui.q||{})[k]||'').toLowerCase();
+const stPill=s=>`<span class="status st-${s}">${s}</span>`;
+const empty=(icon,title,text)=>`<div class="empty"><span class="ms">${icon}</span><b>${title}</b><div>${text}</div></div>`;
+const eye=k=>`<button class="ib sm box" data-act="hide" data-k="${k}"><span class="ms xs">${S.ui.hide[k]?'visibility_off':'visibility'}</span></button>`;
+
+/* ---------- HOME ---------- */
+function txRow(t){return `<div class="li" data-act="txView" data-id="${t.id}" style="cursor:pointer"><div class="av"><span class="ms s">${t.status==='completed'?'check':t.status==='failed'?'close':'hourglass_top'}</span></div><div class="f1"><div class="row sb"><b style="font-weight:500">${h(t.plan||'Unmatched')} • ${kes(t.amount)}</b>${stPill(t.status)}</div><div class="sub">${h(t.code)} • ${h(t.phone)} ${t.name?'• '+h(t.name):''}</div><div class="tiny">${rel(t.ts)}${t.reason?' • '+h(t.reason):''}</div></div></div>`}
+R.home={title:'Bingwa',acts:()=>`<button class="ib" data-act="go" data-r="profile"><span class="ms s">person</span></button>`,render(){
+  const b=S.balances,hd=S.ui.hide,st=rangeStart(),tx=S.transactions.filter(t=>t.ts>=st),m=v=>hd.bal?'••••':v,o=v=>hd.ov?'•':v;
+  const cnt=s=>tx.filter(t=>s==='pending'?['pending','running'].includes(t.status):t.status===s).length;
+  return `<div class="card"><div class="ch"><span class="lbl">Balances</span><span class="row"><button class="ib sm box" data-act="editBal" title="Set balances"><span class="ms xs">edit</span></button>${eye('bal')}</span></div><div class="grid3">
+   <div><div class="big">${m(kes2(b.airtime))}</div><div class="cap">Airtime</div></div><div><div class="big">${m(b.tokens+' units')}</div><div class="cap">Tokens</div></div><div><div class="big">${m(kes2(b.commission))}</div><div class="cap">Commission</div></div></div></div>
+  <div class="card"><div class="ch"><span class="lbl">Overview <span class="tiny">(${S.settings.homeRange})</span></span><span class="row"><a href="#/stats" class="sub c-blue">View stats →</a>${eye('ov')}</span></div><div class="grid4">
+   <div><div class="num c-green">${o(cnt('completed'))}</div><div class="tiny mt">Completed</div></div><div><div class="num c-yel">${o(cnt('pending'))}</div><div class="tiny mt">Pending</div></div>
+   <div><div class="num c-yel">${o(S.schedules.filter(s=>s.status==='scheduled').length)}</div><div class="tiny mt">Scheduled</div></div><div><div class="num c-red">${o(cnt('failed'))}</div><div class="tiny mt">Failed</div></div></div></div>
+  <div class="card"><div class="ch"><span class="lbl">Recent</span><span class="row"><a href="#/transactions" class="sub c-blue">View all →</a>${eye('rec')}</span></div><div style="padding:10px">
+   ${hd.rec?'<div class="empty">Hidden</div>':S.transactions.length?S.transactions.slice(0,5).map(txRow).join(''):empty('receipt_long','No Recent Transactions','Your recent transactions will appear here once you start using the app.')}</div></div>
+  <button class="btn big blk ${S.automation?'r':'g'}" data-act="automation"><span class="ms s fill">${S.automation?'stop':'play_arrow'}</span>${S.automation?'Stop automation':'Start automation'}</button>
+  <div class="row mt" style="justify-content:center"><button class="btn o sm" data-act="simPay"><span class="ms s">science</span>Simulate incoming M-PESA payment</button></div>`}};
+A.automation=()=>guard('automation',()=>startAutomation(!S.automation));
+A.simPay=()=>{const plans=S.plans.filter(p=>p.enabled);const code='U'+Math.random().toString(36).slice(2,11).toUpperCase();
+  modal('Simulate M-PESA payment',`<p class="sub mb8">Generates a payment confirmation SMS exactly as Safaricom sends it. Automation matches the amount to a plan and dials its USSD.</p>
+  ${fld('Amount (KES)',`<select class="inp sel" name="amount">${opt(plans.map(p=>[p.price,`${p.price} — ${p.name}`]).concat([['7','7 — no matching offer']]))}</select>`)}
+  ${fld('Customer name',inp('name','JANE WANJIKU'))}${fld('Customer number',inp('phone','0712345678'))}${fld('Sender',inp('sender','MPESA'))}`,
+  [{label:'Cancel'},{label:'Send payment',cls:'g',onClick:m=>{const v=vals(m);const d=new Date();
+    const body=`${code} Confirmed.You have received Ksh${Number(v.amount).toFixed(2)} from ${v.name.toUpperCase()} ${v.phone} on ${d.getDate()}/${d.getMonth()+1}/${String(d.getFullYear()).slice(2)} at ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} New M-PESA balance is Ksh${(Math.random()*5000).toFixed(2)}.`;
+    receiveSms(v.sender||'MPESA',body)}}])};
+A.txView=d=>{const t=S.transactions.find(x=>x.id===d.id);if(!t)return;
+  modal('Transaction '+h(t.code),`<table class="t"><tr><th>Status</th><td>${stPill(t.status)}</td></tr><tr><th>Customer</th><td>${h(t.name)} ${h(t.phone)}</td></tr><tr><th>Amount</th><td>${kes(t.amount)}</td></tr><tr><th>Plan</th><td>${h(t.plan||'-')}</td></tr><tr><th>Attempts</th><td>${t.attempts}</td></tr><tr><th>Time</th><td>${fmtDate(t.ts)}</td></tr></table><div class="pre" style="max-height:none">${t.notes.map(h).join('\n')||'No notes'}</div>`,
+  [{label:'Delete',cls:'o',onClick:()=>{S.transactions=S.transactions.filter(x=>x!==t);save();render()}},...(t.status!=='completed'?[{label:'Retry',cls:'g',onClick:()=>{t.notes.push('Manual retry');t.status='pending';if(S.automation)runTx(t);else toast('Start automation to process');save();render()}}]:[]),{label:'Close'}])};
+
+/* ---------- TRANSACTIONS & STATS ---------- */
+R.transactions={title:'Transactions',back:true,acts:()=>`<button class="ib" data-act="txExport"><span class="ms s">download</span></button>`,render(){const f=S.ui.txf||'All';
+  return `<div class="search"><span class="ms s">search</span><input data-in="q" data-k="tx" placeholder="Search code, number, plan..." value="${h((S.ui.q||{}).tx||'')}"></div><div class="chips">${['All','completed','pending','running','failed'].map(x=>`<span class="chip ${f===x?'on':''}" data-act="chip" data-k="txf" data-v="${x}">${x[0].toUpperCase()+x.slice(1)}</span>`).join('')}</div><div id="list">${this.list()}</div>`},
+  list(){const f=S.ui.txf||'All',s=q('tx');const l=S.transactions.filter(t=>(f==='All'||t.status===f)&&(!s||`${t.code} ${t.phone} ${t.plan} ${t.name}`.toLowerCase().includes(s)));return l.length?l.slice(0,200).map(txRow).join(''):empty('receipt_long','No transactions','Payments processed by automation show here.')}};
+A.txExport=()=>download('transactions.csv',csv([['Code','Phone','Name','Amount','Plan','Status','Reason','Time'],...S.transactions.map(t=>[t.code,t.phone,t.name,t.amount,t.plan,t.status,t.reason||'',fmtIso(t.ts)])]),'text/csv');
+R.stats={title:'Statistics',back:true,render(){const tx=S.transactions,done=tx.filter(t=>t.status==='completed');const rev=done.reduce((a,t)=>a+Number(t.amount),0);
+  const by={};done.forEach(t=>{by[t.plan]=by[t.plan]||{n:0,v:0};by[t.plan].n++;by[t.plan].v+=Number(t.amount)});const mx=Math.max(1,...Object.values(by).map(x=>x.n));
+  const days=[...Array(7)].map((_,i)=>{const s=startOfDay()-(6-i)*DAY;return {l:new Date(s).toLocaleDateString('en',{weekday:'short'}),n:done.filter(t=>t.ts>=s&&t.ts<s+DAY).length}});const dm=Math.max(1,...days.map(d=>d.n));
+  const sr=tx.length?Math.round(done.length/tx.length*100):0;
+  return `<div class="card"><div class="grid4"><div><div class="num">${tx.length}</div><div class="tiny mt">Total</div></div><div><div class="num c-green">${done.length}</div><div class="tiny mt">Completed</div></div><div><div class="num c-red">${tx.filter(t=>t.status==='failed').length}</div><div class="tiny mt">Failed</div></div><div><div class="num">${sr}%</div><div class="tiny mt">Success</div></div></div></div>
+  <div class="card p"><div class="lbl mb8">Revenue</div><div class="big">${kes2(rev)}</div><div class="sub">Commission earned ${kes2(S.balances.commission)} • ${S.ussdHistory.length} USSD executions</div></div>
+  <div class="card p"><div class="lbl mb8">Last 7 days (completed)</div><div class="row" style="align-items:flex-end;height:120px;gap:8px">${days.map(d=>`<div class="f1" style="text-align:center"><div style="height:${d.n/dm*90+2}px;background:var(--green2);border-radius:4px 4px 0 0"></div><div class="tiny">${d.l}<br>${d.n}</div></div>`).join('')}</div></div>
+  <div class="card p"><div class="lbl mb8">By plan</div>${Object.keys(by).length?Object.entries(by).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<div class="mb8"><div class="row sb"><span>${h(k)}</span><span class="sub">${v.n} • ${kes(v.v)}</span></div><div class="bar"><i style="width:${v.n/mx*100}%"></i></div></div>`).join(''):'<div class="sub">No completed transactions yet.</div>'}</div>`}};
+
+/* ---------- ONLINE STORE ---------- */
+R.store={title:'Online Store',acts:()=>`<button class="ib" data-act="storeSync"><span class="ms s">refresh</span></button>`,render(){const s=S.store;
+  return `<div class="lbl" style="margin:8px 4px">Connect with PAT</div><div class="card p"><div class="row"><span class="ms">key</span><div><b style="font-weight:600">${s.connected?'Connected':'Not connected'}</b><div class="tiny">${s.connected?'Last sync: '+(s.lastSync?rel(s.lastSync):'never'):'Paste your token to link your store'}</div></div></div>
+  <div class="search" style="margin-top:14px"><span class="ms s">key</span><input id="pat" type="password" placeholder="Personal Access Token (PAT)" value="${h(s.pat)}"><button class="ib sm" data-act="patEye"><span class="ms s">visibility</span></button><button class="ib sm" data-act="patPaste"><span class="ms s">content_paste</span></button></div>
+  <div class="row"><button class="btn g f1" data-act="patSave">${s.connected?'Update PAT':'Save PAT'}</button><button class="btn o f1" data-act="patHelp">Help</button></div>
+  ${s.connected?`<button class="btn sm mt" data-act="patDisconnect"><span class="ms s">link_off</span>Disconnect</button>`:''}<div class="tiny mt">Get your PAT from the Developers page on your store dashboard.</div></div>
+  ${s.connected?`<div class="card p"><div class="lbl mb8">Store sync</div><div class="sub">${S.plans.filter(p=>p.enabled).length} active plans published • Orders paid online are processed by automation like M-PESA payments.</div><button class="btn sm mt" data-act="storeOrder"><span class="ms s">shopping_cart</span>Simulate online order</button></div>`:''}`}};
+A.patEye=()=>{const i=$('#pat');i.type=i.type==='password'?'text':'password'};
+A.patPaste=async()=>{try{$('#pat').value=await navigator.clipboard.readText()}catch(e){toast('Clipboard not available — paste manually')}};
+A.patSave=()=>{const v=$('#pat').value.trim();if(v.length<16){toast('PAT looks too short (min 16 characters)');return}S.store={pat:v,connected:true,lastSync:now()};save();render();toast('Store connected')};
+A.patDisconnect=()=>confirmBox('Disconnect your online store?',()=>{S.store={pat:'',connected:false,lastSync:0};save();render()},'Disconnect');
+A.patHelp=()=>modal('Connecting your store',`<ol class="steps"><li><i>1</i>Sign in to your store dashboard.</li><li><i>2</i>Open <b>Developers</b> → <b>Personal Access Tokens</b>.</li><li><i>3</i>Create a token with <span class="mono">orders</span> and <span class="mono">plans</span> scopes.</li><li><i>4</i>Paste it here and tap Save PAT.</li></ol>`);
+A.storeSync=()=>{if(!S.store.connected){toast('Connect your store first');return}S.store.lastSync=now();save();render();toast('Store synced')};
+A.storeOrder=()=>{const p=S.plans.filter(x=>x.enabled)[0];processPayment({code:'WEB'+Math.random().toString(36).slice(2,9).toUpperCase(),amount:p.price,name:'ONLINE ORDER',phone:'0712000111'});render()};
+
+/* ---------- PLANS ---------- */
+const cats=()=>[...new Set(S.plans.map(p=>p.category))];
+R.plans={title:'Data Plans Manager',acts:()=>`<button class="ib" data-act="bulkPrice" title="Bulk price adjust"><span class="ms s">percent</span></button><button class="ib" data-act="planEdit"><span class="ms">add</span></button>`,render(){const f=S.ui.pcat||'All';
+  const l=S.plans.filter(p=>f==='All'||p.category===f);
+  return `<div class="chips">${['All',...cats()].map(c=>`<span class="chip ${f===c?'on':''}" data-act="chip" data-k="pcat" data-v="${h(c)}">${f===c?'<span class="ms xs">check</span>':''}${h(c)}</span>`).join('')}</div>
+  ${l.map(p=>`<div class="card p"><div class="row sb"><b style="font-weight:500;font-size:15px">${h(p.name)}</b><button class="ib sm" data-act="planMenu" data-id="${p.id}"><span class="ms s">more_vert</span></button></div>
+   <div class="row wrap gap6 mt"><span class="c-blue tiny">${h(p.category)}</span><span class="ms s ${p.sigLearned?'fill c-green':''}" title="Signature">${p.sigLearned?'verified':'pending'}</span><span class="ms s" title="Schedule">schedule</span><span class="ms s ${p.type==='Advanced'?'':'c-blue'}">contrast</span><span class="pill ${p.signature?'g':''}"><span class="ms xs">${p.signature?'check_circle':'cancel'}</span>Signature: ${p.signature?'On':'Off'}</span></div>
+   <div class="row wrap gap6 mt"><span class="pill ${p.enabled?'g':'r'}" data-act="planToggle" data-id="${p.id}" style="cursor:pointer"><span class="ms xs">${p.enabled?'check_circle':'block'}</span>${p.enabled?'Enabled':'Disabled'}</span><span class="pill"><span class="ms xs">stars</span>${p.points?`Points: +${p.pointsEarn} • req ${p.pointsReq}`:'Points: Off'}</span></div>
+   <div class="kv"><div class="k"><span class="ms">dialpad</span><div><small>USSD</small><span class="mono">${h(p.ussd)}</span></div></div><div class="k"><span class="ms">payments</span><div><small>Payment Mode</small>${h(p.paymentMode)}</div></div>
+   <div class="k"><span class="ms">sell</span><div><small>Selling Price</small>${kes(p.price)}</div></div><div class="k"><span class="ms">price_check</span><div><small>Safaricom Price</small>${kes(p.saf)}</div></div>
+   <div class="k"><span class="ms">sim_card</span><div><small>Execute SIM</small>${h(p.execSim)}</div></div><div class="k"><span class="ms">sms</span><div><small>Notification SIM</small>${h(p.notifSim)}</div></div>
+   <div class="k"><span class="ms">autorenew</span><div><small>Auto Retry</small>${p.retryOn?`On • ${p.retry}x • Pending/Failed`:'Off'}</div></div><div class="k"><span class="ms">category</span><div><small>Type</small>${h(p.type)}</div></div></div>
+   <div class="tiny mt">Last updated: ${fmtIso(p.updated)}</div></div>`).join('')||empty('data_saver_on','No plans','Tap + to add your first plan.')}
+  <button class="btn g fab" data-act="sharePlans"><span class="ms s">share</span>Share plans</button>`}};
+A.planToggle=d=>guard('plans',()=>{const p=planById(d.id);p.enabled=!p.enabled;p.updated=now();save();render();if(p.enabled&&S.automation){S.transactions.filter(t=>t.status==='pending'&&t.planId===p.id).forEach(runTx)}});
+A.planMenu=(d,el)=>{const p=planById(d.id);popMenu(el,[{label:'Edit',icon:'edit',fn:()=>A.planEdit({id:p.id})},{label:p.enabled?'Disable':'Enable',icon:p.enabled?'block':'check_circle',fn:()=>A.planToggle(d)},{label:'Test in USSD Console',icon:'terminal',fn:()=>{S.ui.cPlan=p.id;go('console')}},{label:'Learn signature',icon:'verified',fn:async()=>{toast('Learning signature with '+S.settings.sigNumber+'…');await sleep(1200);p.sigLearned=true;p.updated=now();save();render();toast('Signature learned for '+p.name)}},{label:'Duplicate',icon:'content_copy',fn:()=>{S.plans.push({...p,id:uid(),name:p.name+' (copy)',updated:now()});save();render()}},{label:'Delete',icon:'delete',danger:true,fn:()=>guard('plans',()=>confirmBox(`Delete plan "${h(p.name)}"?`,()=>{S.plans=S.plans.filter(x=>x!==p);S.fallbacks.maps=S.fallbacks.maps.filter(m=>m.from!==p.id&&m.to!==p.id);save();render()},'Delete'))}])};
+A.planEdit=d=>{const p=d&&d.id?planById(d.id):{name:'',category:S.ui.pcat&&S.ui.pcat!=='All'?S.ui.pcat:'Data',ussd:'*180*5*2*pn*1*1#',price:'',saf:'',execSim:'SIM 1',notifSim:'SIM 1',paymentMode:'Till SIM',retryOn:true,retry:3,type:'Advanced',enabled:true,signature:true,points:false,pointsEarn:0,pointsReq:0};
+  modal(d&&d.id?'Edit plan':'New plan',`${fld('Plan name',inp('name',p.name,'e.g. 1gb valid 1hr'))}
+  <div class="row">${fld('Category',`<input class="inp" name="category" list="catlist" value="${h(p.category)}"><datalist id="catlist">${opt(cats())}</datalist>`).replace('class="fld"','class="fld f1"')}${fld('Type',`<select class="inp sel" name="type">${opt(['Simple','Advanced'],p.type)}</select>`).replace('class="fld"','class="fld f1"')}</div>
+  ${fld('USSD code (use <span class="mono">pn</span> for customer number)',inp('ussd',p.ussd,'*180*5*2*pn*1*1#'))}
+  <div class="row">${fld('Selling price',inp('price',p.price,'20','number')).replace('class="fld"','class="fld f1"')}${fld('Safaricom price',inp('saf',p.saf,'20','number')).replace('class="fld"','class="fld f1"')}</div>
+  <div class="row">${fld('Execute SIM',`<select class="inp sel" name="execSim">${opt(['SIM 1','SIM 2'],p.execSim)}</select>`).replace('class="fld"','class="fld f1"')}${fld('Notification SIM',`<select class="inp sel" name="notifSim">${opt(['SIM 1','SIM 2'],p.notifSim)}</select>`).replace('class="fld"','class="fld f1"')}</div>
+  ${fld('Payment mode',`<select class="inp sel" name="paymentMode">${opt(['Till SIM','Paybill SIM','M-Pesa SIM','Online Store'],p.paymentMode)}</select>`)}
+  <div class="row sb mb8"><span>Auto retry</span>${sw('retryOn',p.retryOn)}</div>${fld('Retry attempts',inp('retry',p.retry,'3','number','min="1" max="20"'))}
+  <div class="row sb mb8"><span>Signature check</span>${sw('signature',p.signature)}</div><div class="row sb mb8"><span>Enabled</span>${sw('enabled',p.enabled)}</div>
+  <div class="row sb mb8"><span>Loyalty points</span>${sw('points',p.points)}</div><div class="row">${fld('Points earned',inp('pointsEarn',p.pointsEarn,'0','number')).replace('class="fld"','class="fld f1"')}${fld('Points required to redeem',inp('pointsReq',p.pointsReq,'0','number')).replace('class="fld"','class="fld f1"')}</div>`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(!v.name.trim()||!v.ussd.trim()||v.price===''){toast('Name, USSD and price are required');return false}
+    if(!/pn/.test(v.ussd))toast('Note: USSD has no "pn" placeholder');
+    const o={...v,name:v.name.trim(),category:v.category.trim()||'Data',price:+v.price,saf:+(v.saf||v.price),retry:+v.retry||1,pointsEarn:+v.pointsEarn||0,pointsReq:+v.pointsReq||0,updated:now()};
+    if(d&&d.id)Object.assign(p,o);else S.plans.push({id:uid(),sigLearned:false,...o});save();render();toast('Plan saved')}}])};
+A.bulkPrice=()=>modal('Bulk price adjust',`${fld('Category',`<select class="inp sel" name="cat">${opt(['All',...cats()])}</select>`)}${fld('Change selling price by (%)',inp('pct','10','e.g. 10 or -5','number'))}${fld('Round to',`<select class="inp sel" name="round">${opt([['1','Nearest 1'],['5','Nearest 5']])}</select>`)}<p class="tiny">Safaricom price is not changed.</p>`,
+  [{label:'Cancel'},{label:'Apply',cls:'g',onClick:m=>{const v=vals(m),pct=+v.pct,r=+v.round;let n=0;S.plans.forEach(p=>{if(v.cat==='All'||p.category===v.cat){p.price=Math.max(1,Math.round(p.price*(1+pct/100)/r)*r);p.updated=now();n++}});save();render();toast(`Updated ${n} plan(s)`)}}]);
+function offersText(){const by={};S.plans.filter(p=>p.enabled).forEach(p=>{(by[p.category]=by[p.category]||[]).push(p)});const pay=S.profile.payMode+' '+(S.profile.pay[S.profile.payMode]||'');
+  return `*${S.profile.name} — BINGWA OFFERS*\n`+Object.entries(by).map(([c,l])=>`\n_${c}_\n`+l.map(p=>`• ${p.name} — KES ${p.price}`).join('\n')).join('\n')+`\n\nPay via ${pay}. Offers are sent to the number that pays.`}
+A.sharePlans=()=>{const t=offersText();modal('Share plans',`<textarea class="inp" style="min-height:260px" id="shareTxt">${h(t)}</textarea>`,[{label:'Close'},{label:'Copy',cls:'o',onClick:()=>{copy($('#shareTxt').value);return false}},{label:'Share',cls:'g',onClick:()=>{const v=$('#shareTxt').value;if(navigator.share)navigator.share({text:v}).catch(()=>{});else{window.open('https://wa.me/?text='+encodeURIComponent(v),'_blank')}}}])};
+</script>
+<script>
+'use strict';
+const planOpts=(sel,all)=>opt(S.plans.filter(p=>all||p.enabled).map(p=>[p.id,planLabel(p)]),sel);
+/* ---------- SCHEDULER ---------- */
+R.scheduler={title:'USSD Scheduler',acts:()=>`<button class="ib" data-act="schedClear" title="Clear finished"><span class="ms s">delete_sweep</span></button>`,render(){const l=[...S.schedules].sort((a,b)=>a.at-b.at);
+  return `<p class="sub" style="margin:6px 4px 12px">Schedule a plan to be dialled for a customer at a set time — once, daily or weekly. Runs while Bingwa is open.</p>
+  ${l.map(s=>{const p=planById(s.planId);return `<div class="li"><div class="av"><span class="ms s">schedule_send</span></div><div class="f1"><div class="row sb"><b style="font-weight:500">${h(planLabel(p))}</b>${stPill(s.status)}</div><div class="sub">To ${h(s.phone)} • ${h(s.sim)} • ${s.repeat==='none'?'Once':s.repeat}</div><div class="tiny">${s.status==='scheduled'?'Next: ':'At: '}${fmtDate(s.at)}${s.lastResult?' • last: '+s.lastResult:''}${s.runs?' • runs: '+s.runs:''}</div></div>
+  <button class="ib sm" data-act="schedRun" data-id="${s.id}" title="Run now"><span class="ms s">play_arrow</span></button><button class="ib sm" data-act="schedDel" data-id="${s.id}"><span class="ms s">delete</span></button></div>`}).join('')||empty('event_upcoming','Nothing scheduled','Tap New schedule to plan a USSD execution.')}
+  <button class="btn g fab" data-act="schedNew"><span class="ms s">add</span>New schedule</button>`}};
+A.schedNew=()=>{const d=new Date(now()+5*60e3-new Date().getTimezoneOffset()*60e3).toISOString().slice(0,16);
+  modal('New schedule',`${fld('Plan',`<select class="inp sel" name="planId">${planOpts()}</select>`)}${fld('Customer number',inp('phone','','07...','tel'))}${fld('Date & time',inp('at',d,'','datetime-local'))}${fld('Repeat',`<select class="inp sel" name="repeat">${opt([['none','Once'],['daily','Daily'],['weekly','Weekly']])}</select>`)}${fld('SIM',`<select class="inp sel" name="sim">${opt(['SIM 1','SIM 2'])}</select>`)}`,
+  [{label:'Cancel'},{label:'Schedule',cls:'g',onClick:m=>{const v=vals(m);if(!/^0\d{9}$/.test(normPhone(v.phone))){toast('Enter a valid number e.g. 0712345678');return false}const at=new Date(v.at).getTime();if(!at){toast('Pick a time');return false}
+    S.schedules.push({id:uid(),planId:v.planId,phone:normPhone(v.phone),at,repeat:v.repeat,sim:v.sim,status:'scheduled',runs:0});save();render();toast('Scheduled')}}])};
+A.schedDel=d=>{S.schedules=S.schedules.filter(s=>s.id!==d.id);save();render()};
+A.schedRun=d=>{const s=S.schedules.find(x=>x.id===d.id);s.at=now();if(s.status!=='running')s.status='scheduled';tick()};
+A.schedClear=()=>{S.schedules=S.schedules.filter(s=>s.status==='scheduled'||s.status==='running');save();render()};
+
+/* ---------- CLIENTS ---------- */
+function clientFilter(c,f,st){const m=S.settings.metrics;switch(f){case 'Active':return st.active;case 'Dormant':return st.dormant;case 'Blacklisted':return c.blacklisted;case 'New today':return st.isNew;case 'Churned':return st.churned;case 'At risk':return st.risk;default:return true}}
+R.clients={title:'Clients',acts:()=>`<button class="ib" data-act="clientsMenu"><span class="ms s">more_vert</span></button><button class="ib" data-act="clientsBulk" title="Message filtered clients"><span class="ms s">select_all</span></button><button class="ib" data-act="clientEdit"><span class="ms s">person_add</span></button>`,render(){
+  const m=S.settings.metrics,f=S.ui.cf||'All';let nw=0,ch=0,rk=0,rt=0;S.clients.forEach(c=>{const s=clientState(c);if(s.isNew)nw++;if(s.churned)ch++;if(s.risk)rk++;if(s.returning)rt++});
+  const F=[['All','All'],['Active','Active'],['Dormant','Dormant'],['Blacklisted','Blacklisted'],['New today','New today'],['Churned',`Churned ${m.churnDays}d+`],['At risk',`At risk ${m.riskDays}d`]];
+  return `<div class="search"><span class="ms s">search</span><input data-in="q" data-k="cl" placeholder="Search by name or number" value="${h((S.ui.q||{}).cl||'')}"></div>
+  <div class="chips">${F.map(([k,l])=>`<span class="chip ${f===k?'on':''}" data-act="chip" data-k="cf" data-v="${k}">${l}</span>`).join('')}</div>
+  <div class="grid4" style="grid-template-columns:repeat(5,1fr);padding:4px 4px 14px">${[['New today',nw],[`Churned ${m.churnDays}d+`,ch],[`At risk ${m.riskDays}d`,rk],['Returning',rt],['Total',S.clients.length]].map(([l,v])=>`<div><div class="tiny">${l}</div><div class="num mt">${v}</div></div>`).join('')}</div><div id="list">${this.list()}</div>`},
+  list(){const f=S.ui.cf||'All',s=q('cl'),lim=S.ui.limit||50;const l=[];for(const c of S.clients){const st=clientState(c);if(clientFilter(c,f,st)&&(!s||(c.name+' '+c.number).toLowerCase().includes(s)))l.push([c,st])}
+    l.sort((a,b)=>b[0].lastActive-a[0].lastActive);
+    return (l.slice(0,lim).map(([c,st])=>`<div class="li"><div class="av">${/^\d/.test(c.name)?'0':h(initials(c.name))}</div><div class="f1"><div class="row sb"><span style="font-weight:500" class="f1">${h(c.name)}</span><span class="row gap6">${st.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</span></div>
+    <div class="sub">${h(c.number)} • ${h(c.network)}</div><div class="sub">Spent: KES ${c.spent} • Points: ${c.points}</div><div class="sub">Last active: ${Math.floor(st.d)}d ago • Purchases: ${c.purchases}</div></div><button class="ib sm" data-act="clientMenu" data-id="${c.id}"><span class="ms s">more_vert</span></button></div>`).join('')||empty('groups','No clients','Clients are added automatically when they pay.'))
+    +(l.length>lim?`<button class="btn blk" data-act="moreClients">Load more (${l.length-lim} remaining)</button>`:'')}};
+A.moreClients=()=>{S.ui.limit=(S.ui.limit||50)+100;$('#list').innerHTML=R.clients.list()};
+A.clientMenu=(d,el)=>{const c=S.clients.find(x=>x.id===d.id);popMenu(el,[{label:'View history',icon:'history',fn:()=>{const tx=S.transactions.filter(t=>normPhone(t.phone)===normPhone(c.number));modal(h(c.name),`<div class="sub mb8">${h(c.number)} • First seen ${fmtDate(c.firstSeen)}</div>${tx.map(txRow).join('')||'<div class="sub">No transactions recorded on this device.</div>'}`)}},
+  {label:'Recommend package',icon:'send',fn:()=>{S.ui.cNum=c.number;go('console')}},{label:'Send SMS',icon:'sms',fn:()=>composeSms([c.number])},{label:'Edit',icon:'edit',fn:()=>A.clientEdit({id:c.id})},
+  {label:c.blacklisted?'Remove from blacklist':'Blacklist',icon:'block',fn:()=>{c.blacklisted=!c.blacklisted;save();render();toast(c.blacklisted?'Blacklisted':'Removed from blacklist')}},
+  {label:'Save to contacts',icon:'contact_page',fn:()=>{if(!S.contacts.some(x=>normPhone(x.number)===normPhone(c.number)))S.contacts.push({id:uid(),name:c.name,number:c.number,email:'',source:'local'});save();toast('Saved to contacts')}},
+  {label:'Delete',icon:'delete',danger:true,fn:()=>confirmBox('Delete client '+h(c.name)+'?',()=>{S.clients=S.clients.filter(x=>x!==c);save();render()},'Delete')}])};
+A.clientEdit=d=>{const c=d&&d.id?S.clients.find(x=>x.id===d.id):{name:'',number:'',network:'Safaricom',points:0};
+  modal(d&&d.id?'Edit client':'Add client',`${fld('Name',inp('name',c.name))}${fld('Number',inp('number',c.number,'07...','tel'))}${fld('Network',`<select class="inp sel" name="network">${opt(['Safaricom','Airtel','Telkom','-'],c.network)}</select>`)}${fld('Points',inp('points',c.points,'0','number'))}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(!v.number.trim()){toast('Number required');return false}
+    if(d&&d.id)Object.assign(c,{name:v.name||v.number,number:normPhone(v.number),network:v.network,points:+v.points||0});
+    else{if(clientByNumber(v.number)){toast('Client already exists');return false}S.clients.unshift({id:uid(),name:v.name||normPhone(v.number),number:normPhone(v.number),network:v.network,spent:0,points:+v.points||0,lastActive:now(),firstSeen:now(),purchases:0,blacklisted:false})}save();render()}}])};
+A.clientsMenu=(d,el)=>popMenu(el,[{label:'Export CSV',icon:'download',fn:()=>download('clients.csv',csv([['Name','Number','Network','Spent','Points','Purchases','LastActive','Blacklisted'],...S.clients.map(c=>[c.name,c.number,c.network,c.spent,c.points,c.purchases,fmtIso(c.lastActive),c.blacklisted])]),'text/csv')},
+  {label:'Import CSV',icon:'upload',fn:()=>pickFile('.csv,text/csv',t=>{let n=0;parseCsv(t).forEach((r,i)=>{if(i===0&&/name/i.test(r[0]))return;if(r[1]&&!clientByNumber(r[1])){S.clients.unshift({id:uid(),name:r[0]||r[1],number:normPhone(r[1]),network:r[2]||'-',spent:+r[3]||0,points:+r[4]||0,purchases:+r[5]||0,lastActive:now(),firstSeen:now(),blacklisted:false});n++}});save();render();toast(`Imported ${n} client(s)`)})},
+  {label:'Metrics settings',icon:'tune',fn:()=>A.metrics()}]);
+A.clientsBulk=()=>{const f=S.ui.cf||'All',s=q('cl');const nums=S.clients.filter(c=>clientFilter(c,f,clientState(c))&&!c.blacklisted&&(!s||(c.name+' '+c.number).toLowerCase().includes(s))).map(c=>c.number).filter(n=>/^0\d{9}$/.test(n));composeSms(nums,`${f} clients`)};
+
+/* ---------- CONTACTS ---------- */
+R.contacts={title:'Contacts',acts:()=>`<button class="ib" data-act="contactImport" title="Import"><span class="ms s">upload_file</span></button><button class="ib" data-act="contactExport" title="Export"><span class="ms s">download</span></button><button class="ib" data-act="contactsMenu"><span class="ms s">more_vert</span></button>`,render(){const t=S.ui.ctab||'local';
+  return `<div class="chips"><span class="chip ${t==='local'?'on':''}" data-act="chip" data-k="ctab" data-v="local">Local</span><span class="chip ${t==='eddypay'?'on':''}" data-act="chip" data-k="ctab" data-v="eddypay">Eddy Pay</span></div>
+  ${t==='eddypay'&&!S.smsApi.token?`<div class="card p"><b>Eddy Pay not connected</b><div class="sub mt">Add your Eddy Pay API token in Profile → SMS API to load cloud contacts and groups.</div><button class="btn g sm mt" data-act="smsApi">Add API token</button></div>`:
+  `<div class="search"><span class="ms s">search</span><input data-in="q" data-k="ct" placeholder="Search by name, number, email..." value="${h((S.ui.q||{}).ct||'')}"></div><div id="list">${this.list()}</div>`}
+  <button class="btn g fab" data-act="contactEdit"><span class="ms s">person_add</span>Add</button>`},
+  list(){const t=S.ui.ctab||'local',s=q('ct');const l=S.contacts.filter(c=>c.source===t&&(!s||`${c.name} ${c.number} ${c.email}`.toLowerCase().includes(s)));
+    return l.map(c=>`<div class="li"><div class="av">${h(initials(c.name))}</div><div class="f1"><div style="font-weight:500">${h(c.name)}</div><div class="sub">${h(c.number)||'—'}${c.email?' • '+h(c.email):''}</div></div>${c.number?`<button class="ib sm" data-act="contactSms" data-id="${c.id}"><span class="ms s">sms</span></button>`:''}<button class="ib sm" data-act="contactMenu" data-id="${c.id}"><span class="ms s">more_vert</span></button></div>`).join('')||empty('contact_page','No contacts','Add or import contacts.')}};
+A.contactSms=d=>{const c=S.contacts.find(x=>x.id===d.id);composeSms([normPhone(c.number)])};
+A.contactMenu=(d,el)=>{const c=S.contacts.find(x=>x.id===d.id);popMenu(el,[{label:'Edit',icon:'edit',fn:()=>A.contactEdit({id:c.id})},...(c.number?[{label:'Call',icon:'call',fn:()=>location.href='tel:'+c.number},{label:'Recommend package',icon:'send',fn:()=>{S.ui.cNum=normPhone(c.number);go('console')}}]:[]),{label:'Delete',icon:'delete',danger:true,fn:()=>{S.contacts=S.contacts.filter(x=>x!==c);save();render()}}])};
+A.contactEdit=d=>{const c=d&&d.id?S.contacts.find(x=>x.id===d.id):{name:'',number:'',email:''};modal(d&&d.id?'Edit contact':'New contact',`${fld('Name',inp('name',c.name))}${fld('Number',inp('number',c.number,'07...','tel'))}${fld('Email',inp('email',c.email,'','email'))}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(!v.name.trim()){toast('Name required');return false}if(d&&d.id)Object.assign(c,v);else S.contacts.push({id:uid(),...v,source:S.ui.ctab||'local'});save();render()}}])};
+A.contactExport=()=>download('contacts.csv',csv([['Name','Number','Email','Source'],...S.contacts.map(c=>[c.name,c.number,c.email,c.source])]),'text/csv');
+A.contactImport=()=>pickFile('.csv,.vcf,text/csv,text/vcard',(t,f)=>{let n=0;if(/\.vcf$/i.test(f.name)){t.split('END:VCARD').forEach(b=>{const fn=(b.match(/FN[^:]*:(.+)/)||[])[1],tel=(b.match(/TEL[^:]*:(.+)/)||[])[1];if(fn){S.contacts.push({id:uid(),name:fn.trim(),number:(tel||'').trim(),email:'',source:'local'});n++}})}
+  else parseCsv(t).forEach((r,i)=>{if(i===0&&/name/i.test(r[0]))return;if(r[0]){S.contacts.push({id:uid(),name:r[0],number:r[1]||'',email:r[2]||'',source:'local'});n++}});save();render();toast(`Imported ${n} contact(s)`)});
+A.contactsMenu=(d,el)=>popMenu(el,[{label:'Sync from clients',icon:'sync',fn:()=>{let n=0;S.clients.forEach(c=>{if(/^0\d{9}$/.test(c.number)&&!S.contacts.some(x=>normPhone(x.number)===c.number)){S.contacts.push({id:uid(),name:c.name,number:c.number,email:'',source:'local'});n++}});save();render();toast(`Added ${n} contact(s)`)}},{label:'Delete all local',icon:'delete',danger:true,fn:()=>confirmBox('Delete all local contacts?',()=>{S.contacts=S.contacts.filter(c=>c.source!=='local');save();render()},'Delete')}]);
+
+/* ---------- USSD CONSOLE ---------- */
+R.console={title:'USSD Console',acts:()=>`<button class="ib" data-act="render"><span class="ms s">refresh</span></button><button class="ib" data-act="histClear"><span class="ms s">delete_sweep</span></button>`,render(){const f=S.ui.hf||'All';const sel=S.ui.cPlan||(S.plans.find(p=>p.name==='350 flex')||S.plans[0]||{}).id;
+  return `<div class="card p"><div style="font-size:15px;margin-bottom:14px">Recommend a package</div>
+  ${fld('Package',`<select class="inp sel" id="cPlan">${planOpts(sel,true)}</select>`)}${fld('USSD mode',`<select class="inp sel" id="cMode">${opt(['Simple','Advanced'],S.ui.cMode||'Simple')}</select>`)}${fld('Execution SIM',`<select class="inp sel" id="cSim">${opt([['SIM 1','sim1'],['SIM 2','sim2']],S.ui.cSim||'SIM 1')}</select>`)}
+  <div class="fld"><input class="inp" id="cNum" type="tel" placeholder="Customer number (07/01...)" value="${h(S.ui.cNum||'')}"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn g" data-act="recommend" id="recBtn"><span class="ms s">send</span>Send recommendation</button></div></div>
+  <div style="font-size:15px;margin:16px 4px 10px">Execution history</div><div class="chips">${['All','Success','Failed'].map(x=>`<span class="chip ${f===x?'on':''}" data-act="chip" data-k="hf" data-v="${x}">${f===x?'<span class="ms xs">check</span>':''}${x}</span>`).join('')}</div>
+  ${S.ussdHistory.filter(x=>f==='All'||(f==='Success'?x.ok:!x.ok)).slice(0,100).map(x=>`<div class="card p"><div class="row sb"><div class="f1"><div style="font-weight:500">${h(x.plan)} @ KES ${x.price}</div><div class="sub">To: ${h(x.to)}</div><div class="sub">Mode: ${h(x.mode)}${x.source&&x.source!=='console'?' • '+h(x.source):''}</div><div class="sub">USSD: <span class="mono">${h(x.ussd)}</span></div></div><button class="ib sm" data-act="histDel" data-id="${x.id}"><span class="ms s">delete</span></button><span class="ms fill ${x.ok?'c-green':'c-red'}">${x.ok?'check_circle':'cancel'}</span></div>
+  <div class="pre">Response: ${h(x.response)}</div><div class="tiny mt">Duration: ${x.duration}s &nbsp; Executed: ${fmtDate(x.ts)}</div></div>`).join('')||empty('terminal','No executions','Recommendations you send appear here.')}`}};
+A.render=()=>{render();toast('Refreshed')};
+A.recommend=async()=>{const p=planById($('#cPlan').value),num=normPhone($('#cNum').value),mode=$('#cMode').value,sim=$('#cSim').value;S.ui.cPlan=p&&p.id;S.ui.cMode=mode;S.ui.cSim=sim;S.ui.cNum=$('#cNum').value;
+  if(!p){toast('Pick a package');return}if(!/^0[17]\d{8}$/.test(num)){toast('Enter a valid customer number (07/01...)');return}
+  const b=$('#recBtn');b.disabled=true;b.innerHTML='<span class="ms s spin">progress_activity</span>Dialling…';
+  const r=await dialUssd(p,num,mode,'console',sim);if(r.kind==='success'){S.balances.airtime=+(S.balances.airtime-p.saf).toFixed(2);upsertClient(num,'',0).purchases++;save()}
+  toast(r.kind==='success'?'Recommendation sent':'USSD: '+r.kind);render()};
+A.histDel=d=>{S.ussdHistory=S.ussdHistory.filter(x=>x.id!==d.id);save();render()};
+A.histClear=()=>confirmBox('Clear all execution history?',()=>{S.ussdHistory=[];save();render()},'Clear');
+
+/* ---------- SMS RELAY ---------- */
+R.relay={title:'SMS Relay',render(){const r=S.relay;
+  return `<div class="card p"><div class="row sb"><div><b style="font-weight:500">Relay incoming M-PESA SMS</b><div class="sub">Forward verified sender messages to another phone or a webhook.</div></div>${sw('',r.enabled,'data-ch="relayToggle"')}</div></div>
+  <div class="card p">${fld('Forward via',`<select class="inp sel" id="rCh">${opt(['SMS','Webhook'],r.channel)}</select>`)}${fld(r.channel==='Webhook'?'Webhook URL':'Forward to number',`<input class="inp" id="rTo" value="${h(r.target)}" placeholder="${r.channel==='Webhook'?'https://example.com/hook':'07...'}">`)}
+  <div class="row sb mb8"><span>Only verified senders (${h(S.settings.verifiedSenders.join(', '))})</span>${sw('',r.onlyVerified,'id="rOv"')}</div><button class="btn g blk" data-act="relaySave">Save relay settings</button></div>
+  <div style="font-size:15px;margin:16px 4px 10px">Relay log</div>${S.relayLog.slice(0,50).map(l=>`<div class="li"><span class="ms s">forward_to_inbox</span><div class="f1"><div class="sub">${h(l.from)} → ${h(l.to)} • ${rel(l.ts)}</div><div class="pre">${h(l.body)}</div></div></div>`).join('')||'<div class="sub" style="padding:0 4px">Nothing relayed yet.</div>'}`}};
+A.relayToggle=(d,el)=>{if(el.checked&&!S.relay.target){toast('Set a forward target first');el.checked=false;return}S.relay.enabled=el.checked;save();toast(el.checked?'Relay on':'Relay off')};
+A.relaySave=()=>{S.relay.channel=$('#rCh').value;S.relay.target=$('#rTo').value.trim();S.relay.onlyVerified=$('#rOv').checked;save();render();toast('Saved')};
+document.addEventListener('change',e=>{if(e.target.id==='rCh'){S.relay.channel=e.target.value;save();render()}});
+
+/* ---------- BULK SMS & OUTBOX ---------- */
+function composeSms(nums,label){nums=[...new Set(nums.filter(Boolean))];modal('Send SMS',`<div class="sub mb8">${label?h(label)+' — ':''}${nums.length} recipient(s)</div>${nums.length<=5?fld('To',inp('to',nums.join(', '))):`<input type="hidden" name="to" value="${h(nums.join(','))}">`}${fld('Message',`<textarea class="inp" name="body" placeholder="Type message… placeholders: {Business} {Payment} {OffersList}"></textarea>`)}${fld('Send via',`<select class="inp sel" name="ch">${opt(['SIM 1','SIM 2',...(S.autoReply.senderId?['SMSHub:'+S.autoReply.senderId]:[])])}</select>`)}`,
+  [{label:'Cancel'},{label:'Send',cls:'g',onClick:m=>{const v=vals(m);const to=v.to.split(/[,\s]+/).map(normPhone).filter(Boolean);if(!to.length||!v.body.trim()){toast('Recipients and message required');return false}
+    to.forEach(n=>sendSms(n,fillTpl(v.body,{phone:n}),v.ch,{kind:'bulk'}));S.bulkHistory.unshift({id:uid(),ts:now(),count:to.length,body:v.body,ch:v.ch});save();softRender();toast(`Sending ${to.length} SMS`)}}])}
+R.bulk={title:'Bulk SMS',acts:()=>`<button class="ib" data-act="go" data-r="outbox" title="Outbox"><span class="ms s">outbox</span></button>`,render(){
+  return `<div class="card p"><div class="lbl mb8">Compose</div>${fld('Audience',`<select class="inp sel" id="bAud">${opt([['all','All clients'],['active','Active clients'],['risk','At-risk clients'],['churned','Churned clients'],['contacts','Local contacts'],['manual','Enter numbers manually']],S.ui.bAud||'active')}</select>`)}
+  <div id="bManual" class="${(S.ui.bAud||'active')==='manual'?'':'hidden'}">${fld('Numbers (comma or new line)',`<textarea class="inp" id="bNums" style="min-height:60px"></textarea>`)}</div>
+  ${fld('Message',`<textarea class="inp" id="bBody">${h(S.ui.bBody||'Hi! Get today\'s best Bingwa deals:\n{OffersList}\nPay via {Payment}.')}</textarea>`)}<div class="tiny mb8">Placeholders: {Business} {Payment} {OffersList} {Customer}</div>
+  <div class="row"><button class="btn o f1" data-act="bulkTpl">Insert offers list</button><button class="btn g f1" data-act="bulkSend"><span class="ms s">send</span>Send</button></div></div>
+  <div style="font-size:15px;margin:16px 4px 10px">Campaigns</div>${S.bulkHistory.slice(0,30).map(b=>`<div class="li"><span class="ms s">campaign</span><div class="f1"><div class="sub">${b.count} recipients • ${h(b.ch)} • ${rel(b.ts)}</div><div class="pre">${h(b.body)}</div></div></div>`).join('')||'<div class="sub" style="padding:0 4px">No campaigns yet.</div>'}`}};
+document.addEventListener('change',e=>{if(e.target.id==='bAud'){S.ui.bAud=e.target.value;$('#bManual').classList.toggle('hidden',e.target.value!=='manual')}});
+A.bulkTpl=()=>{const b=$('#bBody');b.value+=(b.value?'\n':'')+'{OffersList}'};
+A.bulkSend=()=>{const a=$('#bAud').value;S.ui.bBody=$('#bBody').value;let nums=[];
+  if(a==='manual')nums=$('#bNums').value.split(/[,\s]+/).map(normPhone);else if(a==='contacts')nums=S.contacts.filter(c=>c.source==='local').map(c=>normPhone(c.number));
+  else nums=S.clients.filter(c=>{const s=clientState(c);return !c.blacklisted&&(a==='all'||(a==='active'&&s.active)||(a==='risk'&&s.risk)||(a==='churned'&&s.churned))}).map(c=>c.number);
+  nums=nums.filter(n=>/^0[17]\d{8}$/.test(n));if(!nums.length){toast('No valid recipients in this audience');return}
+  confirmBox(`Send this message to <b>${nums.length}</b> recipient(s)?`,()=>{nums.forEach(n=>sendSms(n,fillTpl(S.ui.bBody,{phone:n}),null,{kind:'bulk'}));S.bulkHistory.unshift({id:uid(),ts:now(),count:nums.length,body:S.ui.bBody,ch:S.autoReply.senderId?'SMSHub':S.settings.notifSim});save();render();toast(`Queued ${nums.length} SMS`)},'Send','g')};
+R.outbox={title:'SMS Outbox',back:true,acts:()=>`<button class="ib" data-act="outClear"><span class="ms s">delete_sweep</span></button>`,render(){return S.outbox.slice(0,200).map(o=>`<div class="li"><span class="ms s ${o.status==='sent'?'c-green':o.status==='failed'?'c-red':'c-yel'}">${o.status==='sent'?'done_all':o.status==='failed'?'error':'schedule'}</span><div class="f1"><div class="row sb"><span class="sub">To ${h(o.to)} • ${h(o.channel)}${o.kind?' • '+h(o.kind):''}</span><span class="tiny">${rel(o.ts)}</span></div><div class="pre">${h(o.body)}</div></div></div>`).join('')||empty('outbox','Outbox empty','Auto replies, notifications and bulk SMS appear here.')}};
+A.outClear=()=>{S.outbox=[];save();render()};
+
+/* ---------- M-PESA MESSAGES ---------- */
+R.mpesa={title:'MPESA Messages',acts:()=>`<button class="ib" data-act="mpesaScan" title="Process all unprocessed payments"><span class="ms s">checklist</span></button><button class="ib" data-act="mpesaRefresh"><span class="ms s">refresh</span></button>`,render(){
+  return `<div class="search"><span class="ms s">search</span><input data-in="q" data-k="mp" placeholder="Search messages..." value="${h((S.ui.q||{}).mp||'')}"></div>
+  <div class="row sb" style="padding:4px"><button class="btn o sm" data-act="simPay"><span class="ms s">science</span>Simulate payment</button><button class="ib sm" data-act="mpesaPaste" title="Paste an SMS"><span class="ms s">sort</span></button></div><div id="list">${this.list()}</div>`},
+  list(){const s=q('mp');const l=S.mpesa.filter(m=>!s||m.body.toLowerCase().includes(s));
+    return `<div class="tiny" style="margin:8px 4px 12px">Showing ${Math.min(100,l.length)} messages${l.length>100?' (scroll for more)':''}</div>`+l.slice(0,100).map(m=>{const p=parseMpesa(m.body),done=p&&S.transactions.some(t=>t.code===p.code);
+    return `<div class="card p"><div class="row sb"><span class="row gap6"><span class="ms s">account_circle</span><b style="font-weight:500">${h(m.sender)}</b>${p?`<span class="tag">${done?'processed':'payment'}</span>`:''}</span><span class="tiny">${rel(m.ts)}</span></div><div style="margin:10px 0 12px;line-height:1.45">${h(m.body)}</div>
+    <div class="row"><button class="btn o f1 sm" data-act="mpesaRerun" data-id="${m.id}"><span class="ms s">replay</span>Rerun</button><button class="btn o f1 sm" data-act="mpesaCopy" data-id="${m.id}"><span class="ms s">content_copy</span>Copy</button></div></div>`}).join('')}};
+A.mpesaCopy=d=>copy(S.mpesa.find(m=>m.id===d.id).body);
+A.mpesaRerun=d=>{const m=S.mpesa.find(x=>x.id===d.id),p=parseMpesa(m.body);if(!p){toast('Not a payment message — nothing to rerun');return}
+  const ex=S.transactions.find(t=>t.code===p.code);if(ex&&ex.status==='completed'){confirmBox(`${p.code} was already completed. Rerun anyway?`,()=>{processPayment(p,{force:true});render()},'Rerun','g');return}
+  if(ex){ex.status='pending';ex.notes.push('Rerun from M-PESA messages');if(S.automation)runTx(ex);else toast('Queued — start automation');save()}else processPayment(p);render()};
+A.mpesaScan=()=>{let n=0;S.mpesa.forEach(m=>{const p=parseMpesa(m.body);if(p&&!S.transactions.some(t=>t.code===p.code)){processPayment(p);n++}});toast(n?`Processing ${n} missed payment(s)`:'No missed payments found');render()};
+A.mpesaRefresh=()=>{render();toast('Inbox refreshed')};
+A.mpesaPaste=()=>modal('Add SMS to inbox',`<p class="sub mb8">Paste a received SMS (e.g. a real M-PESA confirmation) to process it.</p>${fld('Sender',inp('sender','MPESA'))}${fld('Message',`<textarea class="inp" name="body"></textarea>`)}`,[{label:'Cancel'},{label:'Receive',cls:'g',onClick:m=>{const v=vals(m);if(!v.body.trim())return false;receiveSms(v.sender.trim()||'MPESA',v.body.trim())}}]);
+
+/* ---------- UNVERIFIED ---------- */
+R.unverified={title:'Unverified Transactions',render(){return `<p class="sub" style="margin:6px 4px 12px">Payment-looking SMS from senders not in your Verified Senders list. Review before processing to avoid fake M-PESA messages.</p>`+
+  (S.unverified.map(u=>{const p=parseMpesa(u.body);return `<div class="card p"><div class="row sb"><b style="font-weight:500">${h(u.sender)}</b><span class="tiny">${rel(u.ts)}</span></div><div class="tag mt" style="display:inline-block">${h(u.reason)}</div><div style="margin:10px 0">${h(u.body)}</div>${p?`<div class="sub mb8">Parsed: ${h(p.code)} • ${kes(p.amount)} • ${h(p.name)} ${h(p.phone)}</div>`:''}
+  <div class="row"><button class="btn o f1 sm" data-act="unvDismiss" data-id="${u.id}"><span class="ms s">close</span>Dismiss</button><button class="btn g f1 sm" data-act="unvApprove" data-id="${u.id}" ${p?'':'disabled'}><span class="ms s">verified</span>Verify &amp; process</button></div></div>`}).join('')||empty('verified_user','All clear','No unverified transactions.'))}};
+A.unvDismiss=d=>{S.unverified=S.unverified.filter(u=>u.id!==d.id);save();render()};
+A.unvApprove=d=>{const u=S.unverified.find(x=>x.id===d.id);const p=parseMpesa(u.body);confirmBox('Only approve if you confirmed this payment in your M-PESA statement. Process now?',()=>{S.unverified=S.unverified.filter(x=>x!==u);processPayment(p);save();render()},'Process','g')};
+</script>
+<script>
+'use strict';
+/* ---------- PORTAL ---------- */
+const PORTAL='https://portal.bingwastore.com';
+function qrSvg(t){try{const q=qrcode(0,'M');q.addData(t);q.make();return q.createSvgTag({cellSize:5,margin:0})}catch(e){return `<img alt="QR" width="150" height="150" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=0&data=${encodeURIComponent(t)}">`}}
+R.portal={title:'Portal',acts:()=>`<button class="ib" data-act="portalShare"><span class="ms s">share</span></button>`,render(){const p=S.portal;
+  return `<div class="card p"><div class="row"><div class="av"><span class="ms s">${p.paired?'cloud_done':'cloud_off'}</span></div><div class="f1"><b style="font-weight:500">${p.paired?'Paired':'Not paired'}</b><div class="tiny">${p.paired?`${h(p.deviceName)} • online since ${rel(p.pairedAt)}`:'Enter a pairing code from portal.bingwastore.com'}</div></div>${p.paired?'<button class="btn sm" data-act="unpair">Unpair</button>':''}</div></div>
+  <div class="card p"><b style="font-weight:500">Website</b><div class="tiny">Open this link on a computer or another phone to manage this device from the web.</div>
+   <div style="display:flex;justify-content:center;margin:16px 0 8px"><div style="background:#fff;border-radius:12px;padding:10px">${qrSvg(PORTAL)}</div></div>
+   <div style="text-align:center;font-size:12.5px;margin-bottom:12px">${PORTAL}</div>
+   <div class="row" style="justify-content:center"><a class="btn g sm" href="${PORTAL}" target="_blank"><span class="ms s">open_in_new</span>Open</a><button class="btn g sm" data-act="portalShare"><span class="ms s">share</span>Share</button><button class="btn o sm" data-act="portalCopy"><span class="ms s">content_copy</span>Copy</button></div></div>
+  ${p.paired?'':`<div class="card p"><b style="font-weight:500">Pair this phone</b><div class="tiny mb8">On portal.bingwastore.com, open Add device and enter the code shown there.</div>
+   ${fld('Device name',`<input class="inp" id="pName" value="${h(p.deviceName)}">`)}<div class="fld"><input class="inp mono" id="pCode" maxlength="6" placeholder="Pairing code" style="text-transform:uppercase"></div><button class="btn g blk" data-act="pair"><span class="ms s">link</span>Pair and connect</button></div>`}
+  <div class="card p"><b style="font-weight:500">How to use it</b><ol class="steps"><li><i>1</i><div>Open the portal link<div class="tiny">Use Open, Share, or scan the QR code on a browser.</div></div></li><li><i>2</i><div>Sign in<div class="tiny">Use the phone number used to register your account.</div></div></li><li><i>3</i><div>Add this device<div class="tiny">On the website tap Add device, then type the 6-character code here.</div></div></li><li><i>4</i><div>Stay online<div class="tiny">Keep Bingwa open or in the background so the website can send commands.</div></div></li></ol></div>
+  <p class="tiny" style="padding:0 4px">Keep Bingwa running so this phone stays online. The connection uses the same background service as automation, and stays up after you leave this page or swipe the app away.</p>`}};
+A.portalCopy=()=>copy(PORTAL);A.portalShare=()=>navigator.share?navigator.share({url:PORTAL,title:'Bingwa Portal'}).catch(()=>{}):copy(PORTAL);
+A.pair=async()=>{const c=$('#pCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(c)){toast('Enter the 6-character code from the portal');return}toast('Pairing…');await sleep(900);S.portal={paired:true,deviceName:$('#pName').value.trim()||'Android phone',pairedAt:now()};save();render();toast('Paired with portal')};
+A.unpair=()=>confirmBox('Unpair this device from the portal?',()=>{S.portal.paired=false;save();render()},'Unpair');
+
+/* ---------- NOTIFICATIONS ---------- */
+const TRIG=[['completed','Transaction completed'],['failed','Transaction failed'],['low_balance','Low airtime balance (< KES 500)']];
+R.notifications={title:'Notification Templates',acts:()=>`<button class="ib" data-act="notifSim" title="Notification SIM"><span class="ms s">sim_card</span></button>`,render(){
+  return (S.templates.length?S.templates.map(t=>`<div class="card p"><div class="row sb"><b style="font-weight:500">${h(t.name)}</b><span class="row">${sw('',t.on,`data-ch="tplToggle" data-id="${t.id}"`)}<button class="ib sm" data-act="tplMenu" data-id="${t.id}"><span class="ms s">more_vert</span></button></span></div><div class="sub">${h((TRIG.find(x=>x[0]===t.trigger)||[])[1])} • ${h(t.sim)} • to ${h(t.to||'my number')}</div><div class="pre">${h(t.body)}</div></div>`).join(''):`<div class="empty" style="padding-top:60px">No templates yet. Tap + to create one.</div>`)
+  +`<button class="btn g fab" data-act="tplEdit"><span class="ms s">add</span>New Template</button>`}};
+A.notifSim=()=>modal('Default notification SIM',fld('SIM',`<select class="inp sel" name="sim">${opt(['SIM 1','SIM 2'],S.settings.notifSim)}</select>`),[{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{S.settings.notifSim=vals(m).sim;save();toast('Saved')}}]);
+A.tplToggle=(d,el)=>{S.templates.find(t=>t.id===d.id).on=el.checked;save()};
+A.tplMenu=(d,el)=>popMenu(el,[{label:'Edit',icon:'edit',fn:()=>A.tplEdit({id:d.id})},{label:'Send test',icon:'send',fn:()=>{const t=S.templates.find(x=>x.id===d.id);sendSms(t.to||normPhone(S.profile.phone),fillTpl(t.body,{code:'TEST123',plan:'250mbs',amount:20,phone:'0712345678'}),t.sim,{kind:'test'});toast('Test queued — see Outbox')}},{label:'Delete',icon:'delete',danger:true,fn:()=>{S.templates=S.templates.filter(t=>t.id!==d.id);save();render()}}]);
+A.tplEdit=d=>{const t=d&&d.id?S.templates.find(x=>x.id===d.id):{name:'',trigger:'completed',body:'{TransactionId}: {PackageName} sent to {Customer} (KES {Amount}).',sim:S.settings.notifSim,to:'',on:true};
+  modal(d&&d.id?'Edit template':'New template',`${fld('Name',inp('name',t.name,'e.g. Owner alert'))}${fld('Trigger',`<select class="inp sel" name="trigger">${opt(TRIG,t.trigger)}</select>`)}${fld('Send to (blank = my profile number)',inp('to',t.to,'07...','tel'))}${fld('Message',`<textarea class="inp" name="body">${h(t.body)}</textarea>`)}<div class="tiny mb8">Placeholders: {TransactionId} {PackageName} {Customer} {Amount} {Business}</div>${fld('SIM',`<select class="inp sel" name="sim">${opt(['SIM 1','SIM 2'],t.sim)}</select>`)}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(!v.name.trim()||!v.body.trim()){toast('Name and message required');return false}if(d&&d.id)Object.assign(t,v);else S.templates.push({id:uid(),...v,on:true});save();render()}}])};
+
+/* ---------- AUTO REPLY ---------- */
+const ARM=[['completed','Completed','check_circle','#4ade80'],['failed','Failed','error','#f87171'],['disabled','System / Plan Disabled','pause_circle','#fb923c'],['restricted','Restricted Number','block','#c084fc'],['unavailable','Unavailable Offer','inventory_2','#60a5fa'],['already','Already Recommended (fallback)','alt_route','#facc15'],['offers','OFFERS keyword reply','local_offer','#2dd4bf']];
+R.autoreply={title:'Auto Reply',acts:()=>`<button class="ib" data-act="go" data-r="outbox" title="Outbox"><span class="ms s">receipt_long</span></button>`,render(){const a=S.autoReply;
+  return `<div class="card p"><b style="font-weight:500">Your system number</b><div class="tiny">The phone number on this device that will be used by the customers to interact with your system.</div>
+   <div class="row" style="margin:16px 0"><span class="ms c-blue">smartphone</span><div><b style="font-weight:500">${a.systemNumber?h(a.systemNumber):'Not set up'}</b><div class="tiny">${a.systemNumber?h(a.sim):'Select a SIM to detect your line number'}</div></div></div>
+   <button class="btn g blk" data-act="arSim"><span class="ms s">sim_card</span>${a.systemNumber?'Change SIM / number':'Set up from SIM'}</button><div class="tiny mt"><i>Used in reply templates as {SystemNumber} and for device SMS (e.g. when customers text OFFERS) on the selected SIM.</i></div></div>
+  <div class="card p"><div class="row"><span class="ms">timer</span><b style="font-weight:500">Send timeout</b></div><div class="tiny mb8">Transactional replies should not sit behind a bad connection. If a message is still not sent when this time runs out, it is treated as failed so the customer is not left waiting.</div>
+   ${fld('Fail if not sent within',`<select class="inp sel" data-ch="arTimeout">${opt([[10,'10 seconds'],[15,'15 seconds'],[30,'30 seconds'],[60,'60 seconds']],a.timeout)}</select>`)}<div class="tiny"><i>System number, timeout, sender ID, and which replies are active are saved on this device.</i></div></div>
+  <div class="card p"><div class="row sb"><div class="row"><span class="ms c-blue">forward_to_inbox</span><b style="font-weight:500">Transactional sender (SMSHub)</b></div><button class="ib sm" data-act="arSenders"><span class="ms s">refresh</span></button></div><div class="tiny mb8">Sender ID used when this app sends transactional SMS through SMSHub. Saved on this device. Tap the field to load senders from SMSHub and choose one; use refresh to update the list.</div>
+   ${fld('Sender ID',`<select class="inp sel" data-ch="arSender">${opt([['','Not set — tap to choose'],['BINGWA','BINGWA'],['SMSHUB','SMSHUB']],a.senderId)}</select>`)}</div>
+  <div style="font-size:14px;margin:16px 4px 10px">Transactional messages</div>
+  ${ARM.map(([k,l,ic,col])=>`<div class="card p"><div class="row" style="align-items:flex-start"><div class="av" style="border-radius:10px;background:${col}22"><span class="ms s" style="color:${col}">${ic}</span></div><div class="f1"><b style="font-weight:500">${l}</b><div class="sub" style="margin-top:4px">${h(a.messages[k].text)}</div><a href="#" class="sub c-blue" data-act="arEdit" data-k="${k}" style="display:inline-flex;gap:4px;margin-top:8px"><span class="ms xs">edit</span>Edit message</a></div>${sw('',a.messages[k].on,`data-ch="arToggle" data-k="${k}"`)}</div></div>`).join('')}`}};
+A.arSim=()=>modal('Set up from SIM',`<p class="sub mb8">Browsers can't read SIM numbers, so confirm the line number for the selected SIM.</p>${fld('SIM',`<select class="inp sel" name="sim">${opt(['SIM 1','SIM 2'],S.autoReply.sim||'SIM 1')}</select>`)}${fld('Line number',inp('num',S.autoReply.systemNumber||S.settings.ussd.sims['SIM 1']||'','07...','tel'))}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(!/^0[17]\d{8}$/.test(normPhone(v.num))){toast('Enter a valid number');return false}S.autoReply.sim=v.sim;S.autoReply.systemNumber=normPhone(v.num);S.settings.ussd.sims[v.sim]=normPhone(v.num);save();render();toast('System number set')}}]);
+A.arTimeout=(d,el)=>{S.autoReply.timeout=+el.value;save()};A.arSender=(d,el)=>{S.autoReply.senderId=el.value;save();toast(el.value?'Sender ID set':'Using device SIM')};
+A.arSenders=async()=>{toast('Loading senders from SMSHub…');await sleep(700);toast('Sender list up to date')};
+A.arToggle=(d,el)=>{S.autoReply.messages[d.k].on=el.checked;save()};
+A.arEdit=d=>{const m=S.autoReply.messages[d.k];modal('Edit message',`${fld((ARM.find(x=>x[0]===d.k)||[])[1],`<textarea class="inp" name="text" style="min-height:130px">${h(m.text)}</textarea>`)}<div class="tiny">Placeholders: {TransactionId} {PackageName} {SystemNumber} {Amount} {Customer} {Payment} {OffersList} {Business}</div><div class="lbl mt">Preview</div><div class="pre" id="arPrev"></div>`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:x=>{m.text=vals(x).text;save();render()}}]);const up=()=>$('#arPrev').textContent=fillTpl($('#modal [name=text]').value,{code:'UJSIY0CTQQ',plan:'250mbs',amount:20,phone:'0712345678'});up();$('#modal [name=text]').oninput=up};
+
+/* ---------- FALLBACK ---------- */
+R.fallback={title:'Fallback Plans',acts:()=>`<button class="btn o sm" style="border:0" data-act="fbClear">Clear</button>`,render(){const f=S.fallbacks;
+  return `<div style="padding:6px 4px"><b style="font-weight:500">Configure an automatic fallback recommendation.</b><div class="tiny" style="margin-top:4px;line-height:1.5">Map a primary plan to one alternative. Already recommended runs as soon as Safaricom returns that USSD text. Purchase failed waits until this primary plan's auto-retry is exhausted (timeouts keep retrying the same plan). Chained fallbacks show as (FB) in history with a "Fallback from … → …" note.</div></div>
+  <div class="row sb" style="margin:12px 4px"><span class="row"><span class="chip ${f.active?'on':''}" data-act="fbActive">${f.active?'<span class="ms xs">check</span>Active':'Inactive'}</span><span class="tiny">${f.active?'Fallback will run when conditions match.':'Fallbacks are paused.'}</span></span><button class="ib sm" data-act="fbHelp"><span class="ms s c-blue">help</span></button></div>
+  <div class="card p"><div style="font-size:15px;margin-bottom:12px">Mappings</div>${f.maps.map(m=>{const a=planById(m.from),b=planById(m.to);return `<div class="li" style="background:var(--card2)"><div class="f1"><div>${h(a?a.name:'(deleted)')} → ${h(b?b.name:'(deleted)')}</div><div class="tiny">Trigger: ${m.trigger==='already'?'Already recommended':'Purchase failed'}</div></div><button class="ib sm" data-act="fbDel" data-id="${m.id}"><span class="ms s">delete</span></button></div>`}).join('')||'<div class="sub">No mappings yet.</div>'}</div>
+  <button class="btn g fab" data-act="fbAdd"><span class="ms s">add</span>Map</button>`}};
+A.fbActive=()=>{S.fallbacks.active=!S.fallbacks.active;save();render()};
+A.fbDel=d=>{S.fallbacks.maps=S.fallbacks.maps.filter(m=>m.id!==d.id);save();render()};
+A.fbClear=()=>confirmBox('Remove all fallback mappings?',()=>{S.fallbacks.maps=[];save();render()},'Clear');
+A.fbHelp=()=>modal('How fallbacks work',`<ol class="steps"><li><i>1</i>Customer pays for a primary plan.</li><li><i>2</i><b>Already recommended</b>: if Safaricom says the number already got that offer, the mapped alternative is dialled immediately.</li><li><i>3</i><b>Purchase failed</b>: after the primary plan's auto-retries are used up, the alternative is dialled.</li><li><i>4</i>Fallback runs appear as <b>(FB)</b> in transactions.</li></ol>`);
+A.fbAdd=()=>modal('New fallback mapping',`${fld('Primary plan',`<select class="inp sel" name="from">${planOpts('',true)}</select>`)}${fld('Fallback plan',`<select class="inp sel" name="to">${planOpts('',true)}</select>`)}${fld('Trigger',`<select class="inp sel" name="trigger">${opt([['already','Already recommended'],['failed','Purchase failed']])}</select>`)}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(v.from===v.to){toast('Pick a different fallback plan');return false}if(S.fallbacks.maps.some(x=>x.from===v.from&&x.trigger===v.trigger)){toast('That plan already has a fallback for this trigger');return false}S.fallbacks.maps.push({id:uid(),...v});save();render()}}]);
+
+/* ---------- PROFILE ---------- */
+R.profile={title:'Profile',acts:()=>`<button class="ib" data-act="profEdit"><span class="ms s">edit</span></button>`,render(){const p=S.profile,mode=S.ui.payMode||p.payMode;
+  const lab={Paybill:'Paybill number',Till:'Till number','M-Pesa number':'M-Pesa number'}[mode];const preview=`${mode==='M-Pesa number'?'Send money to':mode} ${p.pay[mode]||'…'}${mode==='Paybill'&&p.paybillAcc?' Acc '+p.paybillAcc:''}`;
+  const qa=(i,t,s,act,r='')=>`<div class="set" data-act="${act}" ${r?`data-r="${r}"`:''}><span class="ms">${i}</span><div class="t">${t}<small>${s}</small></div><span class="ms s">chevron_right</span></div>`;
+  return `<div style="background:var(--card2);margin:-6px -12px 16px;padding:28px 0 22px;text-align:center"><div class="av" style="width:96px;height:96px;margin:0 auto;background:#7cc6f7;color:#08314a;font-size:20px">${h(initials(p.name))}</div><div style="font-weight:700;margin-top:14px;font-size:13px">${h(p.name)}</div><div class="sub" style="margin-top:4px">${h(p.org)}</div></div>
+  <b style="font-size:15px">Contact Information</b><div class="sub mb8">Your registered contact details</div>
+  <div class="card p"><div class="row mb8"><span class="ms c-blue">call</span><div class="f1"><div class="tiny">Phone Number</div>${h(p.phone)}</div><button class="btn o sm" style="border:0" data-act="profPhone"><span class="ms s">sim_card</span>Change</button></div><div class="row mb8"><span class="ms c-blue">mail</span><div><div class="tiny">Email Address</div>${h(p.email)}</div></div><div class="row"><span class="ms c-blue">corporate_fare</span><div><div class="tiny">Organization</div>${h(p.org)}</div></div></div>
+  <b style="font-size:15px">Payment receiving</b><div class="sub mb8">Paybill, till, or M-Pesa number for customer payments</div>
+  <div class="card p"><div class="row"><span class="ms">payments</span><b style="font-weight:500">Payment receiving</b></div><div class="tiny mb8">Where customers send M-Pesa for your offers. This is shown in OFFERS SMS — separate from your Auto Reply line.</div>
+   <div class="seg mb8">${['Paybill','Till','M-Pesa number'].map(x=>`<button class="${mode===x?'on':''}" data-act="payMode" data-v="${x}">${mode===x?'✓ ':''}${x}</button>`).join('')}</div>
+   ${fld(lab,`<input class="inp" id="payNum" value="${h(p.pay[mode]||'')}" inputmode="numeric">`)}${mode==='Paybill'?fld('Account number',`<input class="inp" id="payAcc" value="${h(p.paybillAcc)}">`):''}
+   <div class="inp tiny mb8" id="payPrev">Customers will see: "${h(preview)}"</div><button class="btn g blk" data-act="paySave"><span class="ms s">save</span>Save payment settings</button></div>
+  <b style="font-size:15px">Security</b><div class="sub mb8">Choose which actions require fingerprint or PIN</div><div class="card">${qa('fingerprint','Device security',p.security.enabled?'On · '+Object.entries(p.security.protect).filter(x=>x[1]).length+' action(s) protected':'Off · choose what to protect','security')}</div>
+  <b style="font-size:15px">Quick Actions</b><div class="sub mb8">Account and app management</div><div class="card">${qa('settings','USSD Settings','Configure automation parameters','ussdSettings')}${qa('verified_user','Verified Senders','Manage trusted SMS senders (e.g., M-PESA)','senders')}${qa('hub','SMS API','Eddy Pay API token for cloud contacts (import & groups)','smsApi')}${qa('tune','App Settings','Theme, language and preferences','go','settings')}</div>
+  <b style="font-size:15px">Account</b><div class="sub mb8">Backup, support, and updates</div><div class="card">${qa('cloud_upload','Backup','Export selected data securely','backup')}${qa('cloud_download','Restore','Restore from an encrypted backup file','restore')}${qa('help','Help &amp; Support','Tutorials and guides on home.bingwastore.com','helpSite')}${qa('system_update','Update App','Check for and install the latest version','go','updates')}${qa('restart_alt','Reset all data','Erase everything and start fresh','resetAll')}</div>`}};
+A.payMode=d=>{S.ui.payMode=d.v;render()};
+A.paySave=()=>{const mode=S.ui.payMode||S.profile.payMode,v=$('#payNum').value.trim();if(!/^\d{5,12}$/.test(v)){toast('Enter a valid number');return}S.profile.payMode=mode;S.profile.pay[mode]=v;if($('#payAcc'))S.profile.paybillAcc=$('#payAcc').value.trim();save();render();toast('Payment settings saved')};
+document.addEventListener('input',e=>{if(e.target.id==='payNum'||e.target.id==='payAcc'){const mode=S.ui.payMode||S.profile.payMode;const acc=$('#payAcc');$('#payPrev').textContent=`Customers will see: "${mode==='M-Pesa number'?'Send money to':mode} ${$('#payNum').value||'…'}${acc&&acc.value?' Acc '+acc.value:''}"`}});
+A.profEdit=()=>{const p=S.profile;modal('Edit profile',`${fld('Business name',inp('name',p.name))}${fld('Organization',inp('org',p.org))}${fld('Email',inp('email',p.email,'','email'))}`,[{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{Object.assign(p,vals(m));save();render()}}])};
+A.profPhone=()=>modal('Change phone number',`${fld('SIM',`<select class="inp sel" name="sim">${opt(['SIM 1','SIM 2'])}</select>`)}${fld('Phone number',inp('phone',S.profile.phone,'7XX XXX XXX','tel'))}`,[{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);S.profile.phone=v.phone;S.settings.ussd.sims[v.sim]=normPhone(v.phone);save();render()}}]);
+A.security=()=>{const s=S.profile.security;modal('Device security',`<div class="row sb mb8"><b style="font-weight:500">Enable device security</b>${sw('enabled',s.enabled)}</div>${fld('Security PIN (4–6 digits)',inp('pin',s.pin,'••••','password','inputmode="numeric" maxlength="6"'))}<div class="lbl mt mb8">Require PIN for</div>
+  ${[['automation','Start / stop automation'],['plans','Edit, enable or delete plans'],['backup','Backup &amp; restore'],['balances','Show hidden balances']].map(([k,l])=>`<div class="row sb mb8"><span>${l}</span>${sw('p_'+k,s.protect[k])}</div>`).join('')}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);if(v.enabled&&!/^\d{4,6}$/.test(v.pin)){toast('PIN must be 4–6 digits');return false}s.enabled=v.enabled;s.pin=v.pin;Object.keys(s.protect).forEach(k=>s.protect[k]=v['p_'+k]);save();render();toast('Security updated')}}])};
+A.ussdSettings=()=>{const u=S.settings.ussd;modal('USSD Settings',`${fld('Default execution SIM',`<select class="inp sel" name="defaultSim">${opt(['SIM 1','SIM 2'],u.defaultSim)}</select>`)}${fld('USSD session timeout (seconds)',inp('timeout',u.timeout,'','number'))}${fld('Delay between sessions (seconds)',inp('delay',u.delay,'','number'))}${fld('SIM 1 number',inp('sim1',u.sims['SIM 1'],'07...'))}${fld('SIM 2 number',inp('sim2',u.sims['SIM 2'],'07...'))}${fld('Simulated network success rate (%) — demo only',inp('successRate',u.successRate,'','number','min="0" max="100"'))}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);Object.assign(u,{defaultSim:v.defaultSim,timeout:+v.timeout||30,delay:+v.delay||0,successRate:Math.min(100,Math.max(0,+v.successRate))});u.sims={'SIM 1':v.sim1,'SIM 2':v.sim2};save();toast('USSD settings saved')}}])};
+A.senders=()=>{const draw=()=>`${S.settings.verifiedSenders.map((s,i)=>`<div class="li"><span class="ms s c-green">verified_user</span><span class="f1">${h(s)}</span><button class="ib sm" data-act="senderDel" data-i="${i}"><span class="ms s">delete</span></button></div>`).join('')}<div class="row mt"><input class="inp f1" id="newSender" placeholder="Sender name e.g. MPESA"><button class="btn g" data-act="senderAdd">Add</button></div>`;
+  modal('Verified Senders',`<p class="sub mb8">Only payments from these senders are processed automatically. Others go to Unverified Transactions.</p><div id="sendersBox">${draw()}</div>`,[{label:'Done',onClick:()=>render()}]);A._drawSenders=()=>$('#sendersBox').innerHTML=draw()};
+A.senderAdd=()=>{const v=$('#newSender').value.trim();if(v&&!S.settings.verifiedSenders.includes(v)){S.settings.verifiedSenders.push(v);save()}A._drawSenders()};
+A.senderDel=d=>{S.settings.verifiedSenders.splice(+d.i,1);save();A._drawSenders()};
+A.smsApi=()=>modal('SMS API (Eddy Pay)',`<p class="sub mb8">Paste your Eddy Pay API token to load cloud contacts and groups.</p>${fld('API token',inp('token',S.smsApi.token,'ep_live_…','password'))}`,[{label:'Cancel'},...(S.smsApi.token?[{label:'Remove',cls:'o',onClick:()=>{S.smsApi.token='';S.contacts=S.contacts.filter(c=>c.source!=='eddypay');save();render()}}]:[]),{label:'Save',cls:'g',onClick:m=>{const t=vals(m).token.trim();if(t.length<10){toast('Token looks too short');return false}S.smsApi.token=t;
+  if(!S.contacts.some(c=>c.source==='eddypay'))[['Eddy Pay Group: Resellers','0700111222'],['Eddy Pay Group: VIP','0711222333']].forEach(([n,num])=>S.contacts.push({id:uid(),name:n,number:num,email:'',source:'eddypay'}));save();render();toast('Eddy Pay connected')}}]);
+A.backup=()=>guard('backup',()=>{const parts=[['plans','Data plans & fallbacks'],['clients','Clients'],['contacts','Contacts'],['transactions','Transactions & history'],['settings','Settings, profile & auto replies']];
+  modal('Backup',`<p class="sub mb8">Select what to export. The file is protected with your password.</p>${parts.map(([k,l])=>`<div class="row sb mb8"><span>${l}</span>${sw(k,true)}</div>`).join('')}${fld('Backup password',inp('pw','','min 4 characters','password'))}`,[{label:'Cancel'},{label:'Export',cls:'g',onClick:m=>{const v=vals(m);if(v.pw.length<4){toast('Password too short');return false}
+    const d={};if(v.plans){d.plans=S.plans;d.fallbacks=S.fallbacks}if(v.clients)d.clients=S.clients;if(v.contacts)d.contacts=S.contacts;if(v.transactions){d.transactions=S.transactions;d.ussdHistory=S.ussdHistory;d.mpesa=S.mpesa;d.schedules=S.schedules}if(v.settings){d.settings=S.settings;d.profile=S.profile;d.autoReply=S.autoReply;d.templates=S.templates}
+    download(`bingwa-backup-${new Date().toISOString().slice(0,10)}.bingwa`,JSON.stringify({app:'bingwa',v:1,data:xor(JSON.stringify(d),v.pw)}),'application/octet-stream');toast('Backup exported')}}])});
+function xor(s,k){const b=new TextEncoder().encode(s),kb=new TextEncoder().encode(k);for(let i=0;i<b.length;i++)b[i]^=kb[i%kb.length];let o='';b.forEach(x=>o+=String.fromCharCode(x));return btoa(o)}
+function unxor(s,k){const r=atob(s),b=new Uint8Array(r.length),kb=new TextEncoder().encode(k);for(let i=0;i<r.length;i++)b[i]=r.charCodeAt(i)^kb[i%kb.length];return new TextDecoder().decode(b)}
+A.restore=()=>guard('backup',()=>pickFile('.bingwa,.json',t=>modal('Restore backup',fld('Backup password',inp('pw','','','password')),[{label:'Cancel'},{label:'Restore',cls:'g',onClick:m=>{try{const f=JSON.parse(t);const d=JSON.parse(unxor(f.data,vals(m).pw));Object.assign(S,d);save();render();toast('Restore complete')}catch(e){toast('Wrong password or invalid backup file');return false}}}])));
+A.helpSite=()=>window.open('https://home.bingwastore.com','_blank');
+A.editBal=()=>guard('balances',()=>{const b=S.balances;modal('Set balances',fld('Airtime (KES)',inp('airtime',b.airtime,'0.00','number','step="0.01" min="0"'))+fld('Tokens (units)',inp('tokens',b.tokens,'0','number','min="0"'))+fld('Commission (KES)',inp('commission',b.commission,'0.00','number','step="0.01" min="0"')),[{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{const v=vals(m);S.balances={airtime:+(+v.airtime||0).toFixed(2),tokens:Math.max(0,parseInt(v.tokens)||0),commission:+(+v.commission||0).toFixed(2)};save();render();toast('Balances updated')}}])});
+A.resetAll=()=>confirmBox('Erase all data and start fresh? This cannot be undone.',()=>{localStorage.removeItem(KEY);load();render();toast('Data reset')},'Reset');
+
+/* ---------- APP SETTINGS ---------- */
+R.settings={title:'App Settings',back:true,render(){const s=S.settings;const it=(i,t,sub,act,right='')=>`<div class="set" data-act="${act}"><span class="ms">${i}</span><div class="t">${t}<small>${sub}</small></div>${right}</div>`;
+  return `<div style="border-top:1px solid var(--line);margin:0 -12px">${it('data_object','App mode',s.appMode,'setAppMode','<span class="ms s">chevron_right</span>')}${it('palette','Theme',{dark:'Dark',light:'Light',system:'System'}[s.theme]+' (Light / Dark / System)','setTheme','<span class="ms s">arrow_drop_down</span>')}
+  ${it('calendar_today','Week start',s.weekStart,'setWeek')}${it('query_stats','Home data range',s.homeRange,'setRange')}${it('language','Language',s.language+' (more coming soon)','setLang')}${it('verified_user','Verified Senders','Manage trusted SMS senders (e.g., M-PESA)','senders')}
+  ${it('mark_email_read','Missed Messages','Configure inbox scan on app launch — '+(s.missedScan?'On':'Off'),'setMissed')}${it('auto_delete','Auto-delete Transactions',s.autoDelete,'setAutoDel',`<span class="tiny">Last run: ${s.autoDeleteLast?rel(s.autoDeleteLast):'Never'}</span>`)}
+  ${it('tune','Client metrics settings','New, churn and insights thresholds','metrics')}${it('dialpad','Signature learning number','Sample number used while learning USSD signatures: '+h(s.sigNumber),'setSig')}
+  ${it('contact_page','Client to Contacts Sync',`Auto-save: ${s.contactSync?'On':'Off'} • ${S.contacts.filter(c=>c.source==='local').length} numbers indexed`,'setSync','<span class="ms s">chevron_right</span>')}${it('smartphone','USSD Setup','Learn and save USSD dialog classes','ussdSettings')}
+  ${it('screen_lock_portrait','Screen Management',s.screen+(s.screen==='Off'?' - Normal behavior':'')+'<br>Some devices need screen on for multi-session USSD','setScreen','<span class="ms s">arrow_drop_down</span>')}${it('build','Diagnostics','View logs and network info','diag')}</div>`}};
+const pick=(title,key,list,after)=>modal(title,list.map(x=>{const [v,l]=Array.isArray(x)?x:[x,x];return `<label class="row" style="padding:10px 4px;cursor:pointer"><input type="radio" name="pk" value="${h(v)}" ${String(S.settings[key])===String(v)?'checked':''}> ${h(l)}</label>`}).join(''),[{label:'Cancel'},{label:'OK',cls:'g',onClick:m=>{const c=$('#modal input[name=pk]:checked');if(c){S.settings[key]=c.value;save();after&&after();render()}}}],{nofocus:true});
+A.setAppMode=()=>pick('App mode','appMode',[['Standalone','Standalone — this phone does everything'],['Server','Server — executes USSD for paired clients'],['Client','Client — forwards payments to a server phone']]);
+A.setTheme=()=>pick('Theme','theme',[['dark','Dark'],['light','Light'],['system','System']]);
+A.setWeek=()=>pick('Week start','weekStart',['Sunday','Monday']);A.setRange=()=>pick('Home data range','homeRange',['Daily','Weekly','Monthly','All time']);
+A.setLang=()=>pick('Language','language',['English']);A.setScreen=()=>pick('Screen Management','screen',['Off','Keep screen on','Wake screen for USSD']);
+A.setAutoDel=()=>pick('Auto-delete Transactions','autoDelete',['Disabled','7 days','30 days','90 days'],autoDelete);
+A.setMissed=()=>{S.settings.missedScan=!S.settings.missedScan;save();render();toast('Inbox scan on launch '+(S.settings.missedScan?'on':'off'))};
+A.setSync=()=>{S.settings.contactSync=!S.settings.contactSync;save();render();toast('Auto-save '+(S.settings.contactSync?'on':'off'))};
+A.setSig=()=>modal('Signature learning number',fld('Sample number',inp('n',S.settings.sigNumber,'07...','tel')),[{label:'Cancel'},{label:'Save',cls:'g',onClick:m=>{S.settings.sigNumber=normPhone(vals(m).n);save();render()}}]);
+A.metrics=()=>{const m=S.settings.metrics;modal('Client metrics settings',`${fld('"New" if first seen within (days)',inp('newDays',m.newDays,'','number'))}${fld('"At risk" after inactive (days)',inp('riskDays',m.riskDays,'','number'))}${fld('"Churned" after inactive (days)',inp('churnDays',m.churnDays,'','number'))}${fld('"Dormant" after inactive (days)',inp('dormantDays',m.dormantDays,'','number'))}${fld('"High" spender from (KES)',inp('highSpend',m.highSpend,'','number'))}`,
+  [{label:'Cancel'},{label:'Save',cls:'g',onClick:x=>{const v=vals(x);Object.keys(m).forEach(k=>m[k]=Math.max(0,+v[k]||0));if(m.churnDays<=m.riskDays){toast('Churn days must be greater than at-risk days');return false}save();render()}}])};
+A.diag=()=>modal('Diagnostics',`<table class="t"><tr><th>Version</th><td>${VERSION}</td></tr><tr><th>Online</th><td>${navigator.onLine?'Yes':'No'}</td></tr><tr><th>Automation</th><td>${S.automation?'Running':'Stopped'}</td></tr><tr><th>Active USSD sessions</th><td>${running}</td></tr><tr><th>Storage used</th><td>${(JSON.stringify(S).length/1024).toFixed(0)} KB</td></tr><tr><th>Plans / Clients</th><td>${S.plans.length} / ${S.clients.length}</td></tr><tr><th>Transactions</th><td>${S.transactions.length}</td></tr><tr><th>User agent</th><td class="tiny">${h(navigator.userAgent)}</td></tr></table>`,[{label:'Copy',cls:'o',onClick:()=>{copy($('#modal .mb').innerText);return false}},{label:'Close'}],{wide:true});
+
+/* ---------- UPDATES ---------- */
+R.updates={title:'Updates',render(){return `<div class="card p" style="text-align:center;padding:30px"><span class="ms" style="font-size:48px;color:var(--green2)">system_update</span><div class="big mt">Bingwa ${VERSION}</div><div class="sub mt" id="updMsg">Last checked: ${S.ui.updChecked?rel(S.ui.updChecked):'never'}</div><button class="btn g mt" data-act="checkUpd" id="updBtn"><span class="ms s">refresh</span>Check for updates</button></div>
+  <div class="card p"><div class="lbl mb8">What's new in ${VERSION}</div><ul style="padding-left:18px;line-height:1.8" class="sub"><li>Fallback plans with Already-recommended and Purchase-failed triggers</li><li>Portal pairing to manage this device from the web</li><li>Client metrics: new, at-risk, churned, returning</li><li>Transactional auto replies via SIM or SMSHub sender ID</li><li>Encrypted backup &amp; restore</li></ul></div>`}};
+A.checkUpd=async()=>{const b=$('#updBtn');b.disabled=true;b.innerHTML='<span class="ms s spin">progress_activity</span>Checking…';await sleep(1200);S.ui.updChecked=now();save();render();toast('You are on the latest version')};
+
+/* ---------- INIT ---------- */
+load();autoDelete();
+addEventListener('hashchange',()=>{closeMenu();closeModal();render();scrollTo(0,0)});
+addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();toggleDrawer(false)}});
+render();
+setInterval(tick,5000);setInterval(()=>{if(['home','transactions','stats','clients'].includes(cur()))softRender()},30000);
+if(S.settings.missedScan){const missed=S.mpesa.filter(m=>{const p=parseMpesa(m.body);return p&&!S.transactions.some(t=>t.code===p.code)&&now()-m.ts<3*DAY});if(missed.length)setTimeout(()=>toast(`${missed.length} unprocessed payment(s) found in inbox — open M-PESA Messages and tap ✓ to process`),800)}
+</script>
+</body>
+</html>
